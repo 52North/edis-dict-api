@@ -31,7 +31,8 @@ const options = {
   files: [
     { cwd: buildPath, src: '*', dest: `/opt/${targetName}` },
     { cwd: nodelModulesPath, src: '*', dest: `/opt/${targetName}/node_modules` },
-    { cwd: rootPath, src: './.env', dest: `/opt/${targetName}/.env` }
+    { cwd: rootPath, src: `stations.json`, dest: `/opt/${targetName}/` },
+    { cwd: rootPath, src: `.env`, dest: `/opt/${targetName}/` }
   ]
 };
 

@@ -3,6 +3,11 @@
 - stellt die Pegelonline Stationen in aufbereiteter Form zur Verfügung
 - macht die Stationen mit verschiedenen Parametern durchsuchbar
 
+## Swagger-UI
+
+Aufruf der Swagger-UI zur Dict API
+> http://localhost:3000/api
+
 ## Suchparameter
 
 Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter werden diese durch eine UND-Verknüpfung kombiniert.

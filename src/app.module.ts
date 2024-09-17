@@ -6,6 +6,7 @@ import { NominatimService } from './nominatim/nominatim.service';
 import { OptionsController } from './options/options.controller';
 import { QueryController } from './query/query.controller';
 import { StationsService } from './stations/stations.service';
+import { ShutdownObserver } from './observer/observer.service';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { StationsService } from './stations/stations.service';
     ConfigModule.forRoot(),
   ],
   controllers: [QueryController, OptionsController],
-  providers: [StationsService, NominatimService],
+  providers: [StationsService, NominatimService, ShutdownObserver],
 })
 export class AppModule {}

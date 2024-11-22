@@ -187,6 +187,10 @@ export class StationsService {
     'STATIONS_FILE_PATH',
     'stations.json',
   );
+  private readonly einzugsgebieteFilePath = this.configService.get<string>(
+    'EINZUGSGEBIETE_FILE_PATH',
+    'einzugsgebiete.geojson',
+  );
   private readonly pegelonlineBaseUrl = this.configService.get<string>(
     'PEGELONLINE_BASE_URL',
   );
@@ -449,7 +453,7 @@ export class StationsService {
   }
 
   private getDrainage(lat: number, lon: number): string | undefined {
-    const fileContent = readFileSync('einzugsgebiete.geojson', 'utf-8');
+    const fileContent = readFileSync(this.einzugsgebieteFilePath, 'utf-8');
     const geojson = JSON.parse(fileContent);
     const point = turf.point([lon, lat, 0]);
     if (

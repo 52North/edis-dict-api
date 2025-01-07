@@ -438,7 +438,7 @@ export class StationsService {
               return stations;
             }),
           );
-        }),
+        }, 2),
       )
       .subscribe({
         next: (res) => {
@@ -447,6 +447,9 @@ export class StationsService {
           this.logger.log(`finished fetching stations`);
         },
         error: (err) => {
+	  if (err instanceof AggregateError) {
+	      this.logger.error(err.errors);
+	  }
           this.logger.error(err);
         },
       });

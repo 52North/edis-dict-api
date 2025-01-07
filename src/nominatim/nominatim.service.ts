@@ -53,7 +53,11 @@ export class NominatimService {
     };
     return this.httpService
       .get<NominatimReverseResponse>(url, config)
-      .pipe(map((res) => res.data))
+      .pipe(map((res) => res.data),
+	    catchError((err) => {
+	        this.logger.error(err)
+      	        throw "Error getting address data: " + err;
+      }))
       .pipe(
         map((res) => {
           return {

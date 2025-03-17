@@ -7,7 +7,6 @@ import { OptionsController } from './options/options.controller';
 import { QueryController } from './query/query.controller';
 import { SearchTermListService } from './search-term-list/search-term-list';
 import { StationsService } from './stations/stations.service';
-import { ShutdownObserver } from './observer/observer.service';
 
 const INTERVAL_MS = 100;
 @Module({

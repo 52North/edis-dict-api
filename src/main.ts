@@ -29,7 +29,7 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Dict API für Pegelonline')
-    .setDescription('Die PEGELONLINE Dict API macht Pegelonline Stationen mit verschiedenen Parametern durchsuchbar und stellt Stationsinformationen in aufbereiteter Form zur Verfügung.')
+    // .setDescription('TODO: ADD a description')
     .setVersion(process.env.npm_package_version)
     .build();
   const documentOptions: SwaggerDocumentOptions = {

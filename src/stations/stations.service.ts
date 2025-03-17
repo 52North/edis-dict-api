@@ -6,17 +6,61 @@ import * as turf from '@turf/turf';
 import { AxiosRequestConfig } from 'axios';
 import { CronJob } from 'cron';
 import { readFile, readFileSync, writeFile } from 'fs';
-import { forkJoin, map, mergeMap, Observable, of } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 
-import { NominatimService } from '../nominatim/nominatim.service';
+import { AddressData, NominatimService } from '../nominatim/nominatim.service';
+import { SearchTermListService } from '../search-term-list/search-term-list';
+
+type FilterPropertyKey =
+  | 'country'
+  | 'land'
+  | 'kreis'
+  | 'agency'
+  | 'einzugsgebiet'
+  | 'gewaesser';
 
 export class PegelonlineTimeseries {
+  @ApiProperty({
+    description: 'Shortname zur Zeitreihe',
+  })
   shortname: string;
+
+  @ApiProperty({
+    description: 'Longname zur Zeitreihe',
+  })
   longname: string;
+
+  @ApiProperty({
+    description: 'Messeinheit der Zeitreihe',
+  })
   unit: string;
+
+  @ApiProperty({
+    description: 'mqtt Topic für die Zeitreihe',
+  })
   mqtttopic: string;
+
+  @ApiProperty({
+    description: 'Link zu den Messwerten',
+  })
   pegelonlinelink: string;
   equidistance: number;
+}
+
+interface AddressOptions {
+  id: string;
+  country: string;
+  country_alternatives?: string[];
+  land: string;
+  land_alternatives?: string[];
+  kreis: string;
+  kreis_alternatives?: string[];
+}
+
+interface AddressTupel {
+  country: string;
+  land: string;
+  kreis: string;
 }
 
 export class PegelonlineStation {
@@ -64,11 +108,15 @@ export class PegelonlineStation {
     longname: string;
   };
 
+  water_alternatives?: string[];
+
   @ApiProperty({
     description: 'Land - angereichert in der DICT-API',
     required: false,
   })
   country?: string;
+
+  country_alternatives?: string[];
 
   @ApiProperty({
     description: 'Bundesland - angereichert in der DICT-API',
@@ -76,17 +124,23 @@ export class PegelonlineStation {
   })
   land?: string;
 
+  land_alternatives?: string[];
+
   @ApiProperty({
     description: 'Landkreis - angereichert in der DICT-API',
     required: false,
   })
   kreis?: string;
 
+  kreis_alternatives?: string[];
+
   @ApiProperty({
     description: 'Einzugsgebiet - angereichert in der DICT-API',
     required: false,
   })
   einzugsgebiet?: string;
+
+  einzugsgebiet_alternatives?: string[];
 
   @ApiProperty({
     description: 'Zugehöriger mqtt topic für alle Messungen an der Station',
@@ -106,11 +160,14 @@ export class AggregatedStationResponse {
     description: 'Liste aller MQTT topics zu den Stationen',
   })
   mqtttopics: string[];
+
   @ApiProperty({
     description: 'Liste aller Pegelonline-URLs zu den Stationen',
   })
   pegelonlinelinks: string[];
+
   @ApiProperty({
+    description: 'Liste aller Pegelonlinestationen',
     type: [PegelonlineStation],
   })
   stations: PegelonlineStation[];
@@ -181,7 +238,7 @@ export class StationQuery {
 export class StationsService {
   private readonly logger = new Logger(StationsService.name);
 
-  private stations: PegelonlineStation[];
+  private stations: PegelonlineStation[] = [];
 
   private readonly stationsFilePath = this.configService.get<string>(
     'STATIONS_FILE_PATH',
@@ -195,10 +252,7 @@ export class StationsService {
     'edis/pegelonline',
   );
 
-  private readonly proxyProtocol =
-    this.configService.get<string>('PROXY_PROTOCOL');
-  private readonly proxyHost = this.configService.get<string>('PROXY_HOST');
-  private readonly proxyPort = this.configService.get<number>('PROXY_PORT');
+  private readonly harvestLanguageList: string[] = [];
 
   private readonly runDataEnlargingOnInit =
     this.configService.get('RUN_DATA_ENLARGING_ON_INIT', 'true') === 'true';
@@ -208,10 +262,14 @@ export class StationsService {
     '00 00 00 * * *',
   );
 
+  private stationCount = 0;
+  private count = 0;
+
   constructor(
     private readonly httpService: HttpService,
     private readonly nominatimSrvc: NominatimService,
     private readonly configService: ConfigService,
+    private readonly searchTermListSrvc: SearchTermListService,
   ) {
     new CronJob(
       this.cronTimeForDataEnlarging,
@@ -227,6 +285,13 @@ export class StationsService {
     if (!this.runDataEnlargingOnInit) {
       this.loadStations();
     }
+
+    const langListConfig = this.configService.get<string>(
+      'ADDITIONAL_HARVEST_LANGUAGE_LIST',
+    );
+    if (langListConfig) {
+      this.harvestLanguageList = langListConfig.split(',');
+    }
   }
 
   getStations(query: StationQuery = {}): Observable<PegelonlineStation[]> {
@@ -240,16 +305,35 @@ export class StationsService {
   }
 
   private filterQ(filter: string): Observable<PegelonlineStation[]> {
-    const fields = ['shortname', 'longname', 'agency', 'land', 'kreis', 'uuid'];
+    const fields = [
+      'shortname',
+      'longname',
+      'agency',
+      'country',
+      'country_alternatives',
+      'land',
+      'land_alternatives',
+      'kreis',
+      'kreis_alternatives',
+      'uuid',
+      'water_alternatives',
+      'einzugsgebiet',
+      'einzugsgebiet_alternatives',
+    ];
     const waterFields = ['shortname', 'longname'];
     const timeseriesFields = ['shortname', 'longname'];
     return of(
       this.stations.filter((station) => {
-        const matchField = fields.some(
-          (f) =>
-            station[f] &&
-            station[f].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-        );
+        const matchField = fields.some((f) => {
+          const prop = station[f];
+          if (typeof prop === 'string') {
+            return prop.toLowerCase().indexOf(filter.toLowerCase()) >= 0;
+          } else if (prop instanceof Array) {
+            return prop.some(
+              (e) => e.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
+            );
+          }
+        });
         const matchWaterFields = waterFields.some(
           (wf) =>
             station.water[wf] &&
@@ -345,16 +429,42 @@ export class StationsService {
 
   private filter(
     query: StationQuery,
-    propertyKey: string,
+    propertyKey: FilterPropertyKey,
     stations: PegelonlineStation[],
   ): PegelonlineStation[] {
     const filterTerm = query[propertyKey];
     if (filterTerm) {
       this.logger.log(`Filter with paramter ${propertyKey}: ${filterTerm}`);
-      return stations.filter(
-        (e) =>
-          e[propertyKey]?.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
-      );
+      return stations.filter((st) => {
+        const match =
+          st[propertyKey]?.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+        if (propertyKey === 'country' && !match) {
+          return st.country_alternatives?.some(
+            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
+          );
+        }
+        if (propertyKey === 'land' && !match) {
+          return st.land_alternatives?.some(
+            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
+          );
+        }
+        if (propertyKey === 'kreis' && !match) {
+          return st.kreis_alternatives?.some(
+            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
+          );
+        }
+        if (propertyKey === 'einzugsgebiet' && !match) {
+          return st.einzugsgebiet_alternatives?.some(
+            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
+          );
+        }
+        if (propertyKey === 'gewaesser' && !match) {
+          return st.water_alternatives?.some(
+            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
+          );
+        }
+        return match;
+      });
     }
     return stations;
   }
@@ -383,69 +493,139 @@ export class StationsService {
   private fetchStations() {
     this.logger.log(`Start fetching stations`);
     const config: AxiosRequestConfig = {};
-    if (this.proxyProtocol && this.proxyHost && this.proxyPort) {
-      config.proxy = {
-        protocol: this.proxyProtocol,
-        host: this.proxyHost,
-        port: this.proxyPort,
-      };
-    }
+    const url = `${this.pegelonlineBaseUrl}/stations.json?includeTimeseries=true`;
     this.httpService
-      .get<PegelonlineStation[]>(
-        `${this.pegelonlineBaseUrl}/stations.json?includeTimeseries=true`,
-        config,
-      )
+      .get<PegelonlineStation[]>(url, config)
       .pipe(map((res) => res.data))
-      .pipe(
-        mergeMap((stations) => {
-          const requests = stations
-            .filter((s) => {
-              if (s.latitude && s.longitude) {
-                return true;
-              } else {
-                this.logger.warn(`${s.shortname} has no coordinates`);
-                return false;
-              }
-            })
-            .map((s) => {
-              return this.nominatimSrvc.getAdressData(
-                s.uuid,
-                s.latitude,
-                s.longitude,
-              );
-            });
-          return forkJoin(requests).pipe(
-            map((res) => {
-              stations.forEach((st) => {
-                const match = res.find((e) => e.id === st.uuid);
-                if (match) {
-                  st.country = match.country;
-                  st.land = match.state || match.county || match.city;
-                  st.kreis = match.county || match.city;
-                }
-                if (st.latitude && st.longitude) {
-                  const drainage = this.getDrainage(st.latitude, st.longitude);
-                  st.einzugsgebiet = drainage;
-                }
-                this.logger.log(
-                  `Finished enlarging data for station ${st.longname}`,
-                );
-              });
-              return stations;
-            }),
-          );
-        }),
-      )
       .subscribe({
-        next: (res) => {
-          this.saveFetchedStations(res);
-          this.stations = res;
-          this.logger.log(`finished fetching stations`);
+        next: (fetchedStations) => {
+          const filteredStations = fetchedStations
+            .filter((st) => this.filterStations(st))
+          this.stationCount = filteredStations.length;
+          this.count = 0;
+          filteredStations.forEach((st) => {
+            this.extendStation(st);
+          });
         },
         error: (err) => {
-          this.logger.error(err);
+          this.logger.error(err.stack);
         },
       });
+  }
+
+  private extendStation(station: PegelonlineStation) {
+    this.fetchAddressData(station).subscribe((data) => {
+      station.country = data.country;
+      station.country_alternatives = data.country_alternatives;
+      station.land = data.land;
+      station.land_alternatives = data.land_alternatives;
+      station.kreis = data.kreis;
+      station.kreis_alternatives = this.mergeToArray([
+        data.kreis_alternatives,
+        this.searchTermListSrvc.getAlternativeKreise(data.kreis),
+      ]);
+      station.water_alternatives =
+        this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
+      if (station.latitude && station.longitude) {
+        const drainage = this.getDrainage(station.latitude, station.longitude);
+        station.einzugsgebiet = drainage;
+        station.einzugsgebiet_alternatives =
+          this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
+      }
+      this.count++;
+      this.stations.push(station);
+      this.logger.log(
+        `Finished enlarging data for station ${station.longname} - ${this.count}/${this.stationCount}`,
+      );
+      this.saveFetchedStations();
+    });
+  }
+
+  private mergeToArray(entries: string[][]): string[] | undefined {
+    const list = entries.filter((e) => e !== undefined).flat();
+    return list.length ? list : undefined;
+  }
+
+  private filterStations(s: PegelonlineStation): boolean {
+    if (s.latitude && s.longitude) {
+      return true;
+    } else {
+      this.stationCount--;
+      this.logger.warn(`${s.shortname} has no coordinates`);
+      return false;
+    }
+  }
+
+  private fetchAddressData(s: PegelonlineStation): Observable<AddressOptions> {
+    const requests: { [key: string]: Observable<AddressData> } = {
+      de: this.nominatimSrvc.getAdressData(
+        s.uuid,
+        s.latitude,
+        s.longitude,
+        'de',
+      ),
+    };
+    this.harvestLanguageList.forEach((lang) => {
+      requests[lang] = this.nominatimSrvc.getAdressData(
+        s.uuid,
+        s.latitude,
+        s.longitude,
+        lang,
+      );
+    });
+    return forkJoin(requests)
+      .pipe(
+        map((res) => {
+          const deData = res['de'];
+          const deTupel = this.getTupel(deData);
+          const response: AddressOptions = {
+            id: deData.id,
+            country: deTupel.country,
+            land: deTupel.land,
+            kreis: deTupel.kreis,
+          };
+          this.harvestLanguageList.forEach((e) => {
+            const data = res[e];
+            const tupel = this.getTupel(data);
+            if (response.country !== tupel.country) {
+              if (!response.country_alternatives) {
+                response.country_alternatives = [];
+              }
+              response.country_alternatives.push(tupel.country);
+            }
+            if (response.land !== tupel.land) {
+              if (!response.land_alternatives) {
+                response.land_alternatives = [];
+              }
+              response.land_alternatives.push(tupel.land);
+            }
+            if (response.kreis !== tupel.kreis) {
+              if (!response.kreis_alternatives) {
+                response.kreis_alternatives = [];
+              }
+              response.kreis_alternatives.push(tupel.kreis);
+            }
+          });
+          return response;
+        }),
+      )
+      .pipe(
+        catchError((err) => {
+          this.logger.error(
+            `Error occurred while create address data for ${s.uuid}`,
+          );
+          this.logger.error(err.stack);
+          return of();
+        }),
+      );
+  }
+
+  private getTupel(data: AddressData): AddressTupel {
+    return {
+      country: data.country,
+      land: data.state || data.county || data.city,
+      kreis: data.county || data.city,
+    };
   }
 
   private getDrainage(lat: number, lon: number): string | undefined {
@@ -469,23 +649,30 @@ export class StationsService {
     }
   }
 
-  private saveFetchedStations(res: PegelonlineStation[]) {
-    writeFile(this.stationsFilePath, JSON.stringify(res, null, 2), (err) => {
-      if (err) {
-        this.logger.error(err);
-        return;
-      }
-      this.logger.log('Saved successfully');
-    });
+  private saveFetchedStations() {
+    writeFile(
+      this.stationsFilePath,
+      JSON.stringify(this.stations, null, 2),
+      (err) => {
+        if (err) {
+          this.logger.error(err);
+          return;
+        }
+      },
+    );
   }
 
   private loadStations() {
-    readFile(this.stationsFilePath, 'utf8', (err, data) => {
-      if (err) {
-        this.logger.log(err);
-        return;
-      }
-      this.stations = JSON.parse(data);
+    return new Promise<void>((resolve, reject) => {
+      readFile(this.stationsFilePath, 'utf8', (err, data) => {
+        if (err) {
+          this.logger.log(err);
+          reject(err);
+          return;
+        }
+        this.stations = JSON.parse(data);
+        resolve();
+      });
     });
   }
 }

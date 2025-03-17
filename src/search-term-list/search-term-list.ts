@@ -13,13 +13,12 @@ interface ListEntry {
 @Injectable()
 export class SearchTermListService {
   private searchTermList: ListEntry[];
-
-  private readonly suchwortlisteFilePath = this.configService.get<string>(
-    'SUCHWORTLISTE_FILE_PATH',
-    'suchwortliste.xlsx',
-  );
   
   constructor(private readonly configService: ConfigService) {
+    const suchwortlisteFilePath = this.configService.get<string>(
+      'SUCHWORTLISTE_FILE_PATH',
+      'suchwortliste.xlsx',
+    );
     const res = xlsx.readFile(suchwortlisteFilePath);
     const sheet = res.Sheets['Tabelle1'];
     this.searchTermList = xlsx.utils.sheet_to_json(sheet);

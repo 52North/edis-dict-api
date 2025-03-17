@@ -5,7 +5,6 @@ import * as http from 'http';
 import * as https from 'https';
 import * as express from 'express';
 import * as fs from 'fs';
-import { ShutdownObserver } from './observer/observer.service';
 
 import {
   DocumentBuilder,
@@ -42,21 +41,6 @@ async function bootstrap() {
   );
   SwaggerModule.setup('api', app, document);
 
-  await app.init();
-
-  const shutdownObserver = app.get(ShutdownObserver);
-
-  if (key && cert) {
-    const httpsOptions = {
-      key: fs.readFileSync(key),
-      cert: fs.readFileSync(cert),
-    };
-    const httpsServer = https.createServer(httpsOptions, server).listen(port);
-    shutdownObserver.addHttpServer(httpsServer);
-  } else {
-    const httpServer = http.createServer(server).listen(port);
-    shutdownObserver.addHttpServer(httpServer);
-  }
-
+  await app.listen(port);
 }
 bootstrap();

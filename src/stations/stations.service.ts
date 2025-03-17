@@ -244,6 +244,10 @@ export class StationsService {
     'STATIONS_FILE_PATH',
     'stations.json',
   );
+  private readonly einzugsgebieteFilePath = this.configService.get<string>(
+    'EINZUGSGEBIETE_FILE_PATH',
+    'einzugsgebiete.geojson',
+  );
   private readonly pegelonlineBaseUrl = this.configService.get<string>(
     'PEGELONLINE_BASE_URL',
   );
@@ -608,6 +612,45 @@ export class StationsService {
           });
           return response;
         }),
+      .pipe(
+        mergeMap((stations) => {
+          const requests = stations
+            .filter((s) => {
+              if (s.latitude && s.longitude) {
+                return true;
+              } else {
+                this.logger.warn(`${s.shortname} has no coordinates`);
+                return false;
+              }
+            })
+            .map((s) => {
+              return this.nominatimSrvc.getAdressData(
+                s.uuid,
+                s.latitude,
+                s.longitude,
+              );
+            });
+          return forkJoin(requests).pipe(
+            map((res) => {
+              stations.forEach((st) => {
+                const match = res.find((e) => e.id === st.uuid);
+                if (match) {
+                  st.country = match.country;
+                  st.land = match.state || match.county || match.city;
+                  st.kreis = match.county || match.city;
+                }
+                if (st.latitude && st.longitude) {
+                  const drainage = this.getDrainage(st.latitude, st.longitude);
+                  st.einzugsgebiet = drainage;
+                }
+                this.logger.log(
+                  `Finished enlarging data for station ${st.longname}`,
+                );
+              });
+              return stations;
+            }),
+          );
+        }, 2),
       )
       .pipe(
         catchError((err) => {
@@ -629,7 +672,7 @@ export class StationsService {
   }
 
   private getDrainage(lat: number, lon: number): string | undefined {
-    const fileContent = readFileSync('einzugsgebiete.geojson', 'utf-8');
+    const fileContent = readFileSync(this.einzugsgebieteFilePath, 'utf-8');
     const geojson = JSON.parse(fileContent);
     const point = turf.point([lon, lat, 0]);
     if (

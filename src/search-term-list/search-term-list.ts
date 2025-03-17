@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
 import * as xlsx from 'xlsx';
 
 interface ListEntry {
@@ -12,8 +14,13 @@ interface ListEntry {
 export class SearchTermListService {
   private searchTermList: ListEntry[];
 
-  constructor() {
-    const res = xlsx.readFile('Suchwortliste-Dict-API_v0-1_2022-06-23.xlsx');
+  private readonly suchwortlisteFilePath = this.configService.get<string>(
+    'SUCHWORTLISTE_FILE_PATH',
+    'suchwortliste.xlsx',
+  );
+  
+  constructor(private readonly configService: ConfigService) {
+    const res = xlsx.readFile(suchwortlisteFilePath);
     const sheet = res.Sheets['Tabelle1'];
     this.searchTermList = xlsx.utils.sheet_to_json(sheet);
   }

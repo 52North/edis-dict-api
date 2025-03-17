@@ -612,45 +612,6 @@ export class StationsService {
           });
           return response;
         }),
-      .pipe(
-        mergeMap((stations) => {
-          const requests = stations
-            .filter((s) => {
-              if (s.latitude && s.longitude) {
-                return true;
-              } else {
-                this.logger.warn(`${s.shortname} has no coordinates`);
-                return false;
-              }
-            })
-            .map((s) => {
-              return this.nominatimSrvc.getAdressData(
-                s.uuid,
-                s.latitude,
-                s.longitude,
-              );
-            });
-          return forkJoin(requests).pipe(
-            map((res) => {
-              stations.forEach((st) => {
-                const match = res.find((e) => e.id === st.uuid);
-                if (match) {
-                  st.country = match.country;
-                  st.land = match.state || match.county || match.city;
-                  st.kreis = match.county || match.city;
-                }
-                if (st.latitude && st.longitude) {
-                  const drainage = this.getDrainage(st.latitude, st.longitude);
-                  st.einzugsgebiet = drainage;
-                }
-                this.logger.log(
-                  `Finished enlarging data for station ${st.longname}`,
-                );
-              });
-              return stations;
-            }),
-          );
-        }, 2),
       )
       .pipe(
         catchError((err) => {

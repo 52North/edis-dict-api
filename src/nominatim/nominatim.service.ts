@@ -66,7 +66,6 @@ export class NominatimService {
       }))
       .pipe(
         map((res) => {
-          return {
             if (res.address) {
                 return {
                     id: id,
@@ -79,15 +78,14 @@ export class NominatimService {
                 this.logger.error(res.error);
             } else {
                 this.logger.error("reverse geocoding failed for id:" + id);
-                return {
-                    id: id,
-                    country: "",
-                    state: "",
-                    county: "",
-                    city: "",
-                };
             }
-          };
+            return {
+                id: id,
+                country: "",
+                state: "",
+                county: "",
+                city: "",
+            };
         }),
       );
   }

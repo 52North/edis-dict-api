@@ -13,6 +13,7 @@ export interface AddressData {
 }
 
 interface NominatimReverseResponse {
+  error?: string;
   place_id: number;
   address: {
     state: string;
@@ -66,11 +67,26 @@ export class NominatimService {
       .pipe(
         map((res) => {
           return {
-            id: id,
-            country: res.address.country,
-            state: res.address.state,
-            county: res.address.county,
-            city: res.address.city,
+            if (res.address) {
+                return {
+                    id: id,
+                    country: res.address.country,
+                    state: res.address.state,
+                    county: res.address.county,
+                    city: res.address.city,
+                };
+            } else if (res.error) {
+                this.logger.error(res.error);
+            } else {
+                this.logger.error("reverse geocoding failed for id:" + id);
+                return {
+                    id: id,
+                    country: "",
+                    state: "",
+                    county: "",
+                    city: "",
+                };
+            }
           };
         }),
       );

@@ -532,17 +532,22 @@ export class StationsService {
 
   private extendStation(station: PegelonlineStation) {
     this.fetchAddressData(station).subscribe((data) => {
-      station.country = data.country;
-      station.country_alternatives = data.country_alternatives;
-      station.land = data.land;
-      station.land_alternatives = data.land_alternatives;
-      station.kreis = data.kreis;
-      station.kreis_alternatives = this.mergeToArray([
-        data.kreis_alternatives,
-        this.searchTermListSrvc.getAlternativeKreise(data.kreis),
-      ]);
-      station.water_alternatives =
-        this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
+      if (data.country == "") {
+        this.logger.log(
+        `Failed geocoding for station: ${station.longname} - ${this.count}/${this.stationCount}`);
+      } else {
+          station.country = data.country;
+          station.country_alternatives = data.country_alternatives;
+          station.land = data.land;
+          station.land_alternatives = data.land_alternatives;
+          station.kreis = data.kreis;
+          station.kreis_alternatives = this.mergeToArray([
+            data.kreis_alternatives,
+            this.searchTermListSrvc.getAlternativeKreise(data.kreis),
+          ]);
+          station.water_alternatives =
+            this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
+      }
       if (station.latitude && station.longitude) {
         const drainage = this.getDrainage(station.latitude, station.longitude);
         station.einzugsgebiet = drainage;

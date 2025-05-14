@@ -6,7 +6,7 @@ import * as turf from '@turf/turf';
 import { AxiosRequestConfig } from 'axios';
 import { CronJob } from 'cron';
 import { readFile, readFileSync, writeFile } from 'fs';
-import { catchError, forkJoin, map, Observable, of } from 'rxjs';
+import { forkJoin, map, Observable, of } from 'rxjs';
 
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
 import { SearchTermListService } from '../search-term-list/search-term-list';
@@ -55,12 +55,15 @@ interface AddressOptions {
   land_alternatives?: string[];
   kreis: string;
   kreis_alternatives?: string[];
+  city: string;
+  city_alternatives?: string[];
 }
 
 interface AddressTupel {
   country: string;
   land: string;
   kreis: string;
+  city: string;
 }
 
 export class PegelonlineStation {
@@ -108,7 +111,23 @@ export class PegelonlineStation {
     longname: string;
   };
 
+  @ApiProperty({
+    description: 'Alternative Bennenungen zu Water',
+    required: false,
+  })
   water_alternatives?: string[];
+
+  @ApiProperty({
+    description: 'Stadt - angereichert in der DICT-API',
+    required: false,
+  })
+  city?: string;
+
+  @ApiProperty({
+    description: 'Alternative Bennenungen zur Stadt',
+    required: false,
+  })
+  city_alternatives?: string[];
 
   @ApiProperty({
     description: 'Land - angereichert in der DICT-API',
@@ -116,6 +135,10 @@ export class PegelonlineStation {
   })
   country?: string;
 
+  @ApiProperty({
+    description: 'Alternative Bennenungen zum Land',
+    required: false,
+  })
   country_alternatives?: string[];
 
   @ApiProperty({
@@ -124,6 +147,10 @@ export class PegelonlineStation {
   })
   land?: string;
 
+  @ApiProperty({
+    description: 'Alternative Bennenungen zum Bundesland',
+    required: false,
+  })
   land_alternatives?: string[];
 
   @ApiProperty({
@@ -132,6 +159,10 @@ export class PegelonlineStation {
   })
   kreis?: string;
 
+  @ApiProperty({
+    description: 'Alternative Bennenungen zum Landkreis',
+    required: false,
+  })
   kreis_alternatives?: string[];
 
   @ApiProperty({
@@ -140,6 +171,10 @@ export class PegelonlineStation {
   })
   einzugsgebiet?: string;
 
+  @ApiProperty({
+    description: 'Alternative Bennenungen zum Einzugsgebiet',
+    required: false,
+  })
   einzugsgebiet_alternatives?: string[];
 
   @ApiProperty({
@@ -268,7 +303,7 @@ export class StationsService {
 
   private readonly cronTimeForDataEnlarging = this.configService.get<string>(
     'CRON_TIME_FOR_DATA_ENLARGING',
-    '00 00 00 * * *',
+    '00 00 * * *',
   );
 
   private stationCount = 0;
@@ -280,20 +315,19 @@ export class StationsService {
     private readonly configService: ConfigService,
     private readonly searchTermListSrvc: SearchTermListService,
   ) {
-    new CronJob(
-      this.cronTimeForDataEnlarging,
-      () => {
-        this.fetchStations();
-      },
-      null,
-      true,
-      null,
-      null,
-      this.runDataEnlargingOnInit,
-    );
-    if (!this.runDataEnlargingOnInit) {
-      this.loadStations();
-    }
+    this.loadStations().then(() => {
+      new CronJob(
+        this.cronTimeForDataEnlarging,
+        () => {
+          this.fetchStations();
+        },
+        null,
+        true,
+        null,
+        null,
+        this.runDataEnlargingOnInit,
+      );
+    });
 
     const langListConfig = this.configService.get<string>(
       'ADDITIONAL_HARVEST_LANGUAGE_LIST',
@@ -328,6 +362,8 @@ export class StationsService {
       'water_alternatives',
       'einzugsgebiet',
       'einzugsgebiet_alternatives',
+      'city',
+      'city_alternatives',
     ];
     const waterFields = ['shortname', 'longname'];
     const timeseriesFields = ['shortname', 'longname'];
@@ -362,19 +398,26 @@ export class StationsService {
     // TODO: add here some intelligent aggregation of mqtt topics
     const mqtttopics = [];
     const pegelonlinelinks = [];
-    stations.forEach((st) => {
-      st.mqtttopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/+`;
-      mqtttopics.push(st.mqtttopic);
-      st.timeseries.forEach((ts) => {
-        ts.mqtttopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/${ts.shortname}`;
-        ts.pegelonlinelink = `${this.pegelonlineBaseUrl}/stations/${st.uuid}/${ts.shortname}/measurements.json`;
-        pegelonlinelinks.push(ts.pegelonlinelink);
+    const preparedStations = stations.map((st) => {
+      const stationTopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/+`;
+      mqtttopics.push(stationTopic);
+      const timeseries = st.timeseries.map((ts) => {
+        const mqtttopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/${ts.shortname}`;
+        const pegelonlinelink = `${this.pegelonlineBaseUrl}/stations/${st.uuid}/${ts.shortname}/measurements.json`;
+        pegelonlinelinks.push(pegelonlinelink);
+        return { ...ts, mqtttopic, pegelonlinelink } as PegelonlineTimeseries;
       });
+      const station = {
+        ...st,
+        timeseries,
+        mqtttopic: stationTopic,
+      } as PegelonlineStation;
+      return station;
     });
     return {
       mqtttopics,
       pegelonlinelinks,
-      stations,
+      stations: preparedStations,
     };
   }
 
@@ -515,6 +558,7 @@ export class StationsService {
       .pipe(map((res) => res.data))
       .subscribe({
         next: (fetchedStations) => {
+          this.cleanupStationList(fetchedStations);
           const filteredStations = fetchedStations.filter((st) =>
             this.filterStations(st),
           );
@@ -530,37 +574,71 @@ export class StationsService {
       });
   }
 
+  private cleanupStationList(newList: PegelonlineStation[]) {
+    this.stations = this.stations.filter(
+      (st) => newList.find((nSt) => nSt.uuid === st.uuid) !== undefined,
+    );
+  }
+
   private extendStation(station: PegelonlineStation) {
-    this.fetchAddressData(station).subscribe((data) => {
-      if (data.country == "") {
+    this.fetchAddressData(station).subscribe({
+      next: (data) => {
+        if (data.country == "") {
         this.logger.log(
         `Failed geocoding for station: ${station.longname} - ${this.count}/${this.stationCount}`);
       } else {
           station.country = data.country;
-          station.country_alternatives = data.country_alternatives;
-          station.land = data.land;
-          station.land_alternatives = data.land_alternatives;
-          station.kreis = data.kreis;
-          station.kreis_alternatives = this.mergeToArray([
-            data.kreis_alternatives,
-            this.searchTermListSrvc.getAlternativeKreise(data.kreis),
-          ]);
-          station.water_alternatives =
-            this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
-      }
+            station.country_alternatives = data.country_alternatives;
+            station.land = data.land;
+            station.land_alternatives = data.land_alternatives;
+            station.kreis = data.kreis;
+            station.city = data.city;
+            station.city_alternatives = data.city_alternatives;
+            station.kreis_alternatives = this.mergeToArray([
+              data.kreis_alternatives,
+              this.searchTermListSrvc.getAlternativeKreise(data.kreis),
+            ]);
+            station.water_alternatives =
+              this.searchTermListSrvc.getAlternativeGewaesser(
+            station.water.longname,
+          );
+        }
       if (station.latitude && station.longitude) {
-        const drainage = this.getDrainage(station.latitude, station.longitude);
-        station.einzugsgebiet = drainage;
-        station.einzugsgebiet_alternatives =
-          this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
-      }
-      this.count++;
-      this.stations.push(station);
-      this.logger.log(
-        `Finished enlarging data for station ${station.longname} - ${this.count}/${this.stationCount}`,
-      );
-      this.saveFetchedStations();
+          const drainage = this.getDrainage(
+            station.latitude,
+            station.longitude,
+          );
+          station.einzugsgebiet = drainage;
+          station.einzugsgebiet_alternatives =
+            this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
+        }
+        this.logger.log(`Enlarging data for station ${station.longname}`);
+        this.addAndSaveStation(station, true);
+      },
+      error: (error) => {
+        this.logger.error(
+          `Error occurred while requesting additional address data for ${station.longname}`,
+        );
+        this.logger.error(error.stack);
+        this.addAndSaveStation(station, false);
+      },
     });
+  }
+
+  private addAndSaveStation(station: PegelonlineStation, replace: boolean) {
+    this.count++;
+    const match = this.stations.findIndex((st) => st.uuid === station.uuid);
+    if (match >= 0) {
+      if (replace) {
+        this.stations[match] = station;
+      }
+    } else {
+      this.stations.push(station);
+    }
+    this.logger.log(
+      `save station ${station.longname} - ${this.count}/${this.stationCount}`,
+    );
+    this.saveFetchedStations();
   }
 
   private mergeToArray(entries: string[][]): string[] | undefined {
@@ -595,51 +673,61 @@ export class StationsService {
         lang,
       );
     });
-    return forkJoin(requests)
-      .pipe(
-        map((res) => {
-          const deData = res['de'];
-          const deTupel = this.getTupel(deData);
-          const response: AddressOptions = {
-            id: deData.id,
-            country: deTupel.country,
-            land: deTupel.land,
-            kreis: deTupel.kreis,
-          };
-          this.harvestLanguageList.forEach((e) => {
-            const data = res[e];
-            const tupel = this.getTupel(data);
-            if (response.country !== tupel.country) {
-              if (!response.country_alternatives) {
-                response.country_alternatives = [];
-              }
-              response.country_alternatives.push(tupel.country);
+    return forkJoin(requests).pipe(
+      map((res) => {
+        const deData = res['de'];
+        const deTupel = this.getTupel(deData);
+        const response: AddressOptions = {
+          id: deData.id,
+          country: deTupel.country,
+          country_alternatives: this.getTranscriptions(deTupel.country),
+          land: deTupel.land,
+          land_alternatives: this.getTranscriptions(deTupel.land),
+          kreis: deTupel.kreis,
+          kreis_alternatives: this.getTranscriptions(deTupel.kreis),
+          city: deTupel.city,
+          city_alternatives: this.getTranscriptions(deTupel.city),
+        };
+        this.harvestLanguageList.forEach((e) => {
+          const data = res[e];
+          const tupel = this.getTupel(data);
+          if (response.country !== tupel.country) {
+            if (!response.country_alternatives) {
+              response.country_alternatives = [];
             }
-            if (response.land !== tupel.land) {
-              if (!response.land_alternatives) {
-                response.land_alternatives = [];
-              }
-              response.land_alternatives.push(tupel.land);
+            response.country_alternatives.push(tupel.country);
+          }
+          if (response.land !== tupel.land) {
+            if (!response.land_alternatives) {
+              response.land_alternatives = [];
             }
-            if (response.kreis !== tupel.kreis) {
-              if (!response.kreis_alternatives) {
-                response.kreis_alternatives = [];
-              }
-              response.kreis_alternatives.push(tupel.kreis);
+            response.land_alternatives.push(tupel.land);
+          }
+          if (response.kreis !== tupel.kreis) {
+            if (!response.kreis_alternatives) {
+              response.kreis_alternatives = [];
             }
-          });
-          return response;
-        }),
-      )
-      .pipe(
-        catchError((err) => {
-          this.logger.error(
-            `Error occurred while create address data for ${s.uuid}`,
-          );
-          this.logger.error(err.stack);
-          return of();
-        }),
-      );
+            response.kreis_alternatives.push(tupel.kreis);
+          }
+        });
+        return response;
+      }),
+    );
+  }
+
+  private getTranscriptions(text?: string): string[] | undefined {
+    if (text) {
+      if (text.indexOf('ü') >= 0) {
+        return [text.replaceAll('ü', 'ue')];
+      }
+      if (text.indexOf('ä') >= 0) {
+        return [text.replaceAll('ä', 'ae')];
+      }
+      if (text.indexOf('ö') >= 0) {
+        return [text.replaceAll('ö', 'oe')];
+      }
+    }
+    return undefined;
   }
 
   private getTupel(data: AddressData): AddressTupel {
@@ -647,6 +735,7 @@ export class StationsService {
       country: data.country,
       land: data.state || data.county || data.city,
       kreis: data.county || data.city,
+      city: data.city,
     };
   }
 
@@ -685,14 +774,17 @@ export class StationsService {
   }
 
   private loadStations() {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       readFile(this.stationsFilePath, 'utf8', (err, data) => {
         if (err) {
-          this.logger.log(err);
-          reject(err);
-          return;
+          this.logger.warn(`Could not load stations.json`);
+          return resolve();
         }
-        this.stations = JSON.parse(data);
+        try {
+          this.stations = JSON.parse(data);
+        } catch (error) {
+          this.logger.warn(`Error while parsing stations data`);
+        }
         resolve();
       });
     });

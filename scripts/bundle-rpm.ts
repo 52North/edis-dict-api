@@ -30,13 +30,26 @@ const options = {
   rpmDest: './dist/',
   files: [
     { cwd: buildPath, src: '*', dest: `/opt/${targetName}` },
-    { cwd: nodelModulesPath, src: '*', dest: `/opt/${targetName}/node_modules` }
+    { cwd: nodelModulesPath, src: '*', dest: `/opt/${targetName}/node_modules` },
+    { cwd: buildPath, src: 'pegelonline-dict-api-sbom.json', dest: `/opt/${targetName}` }
   ]
 };
 
+console.log(`Cleaning output directory ${buildPath}`);
+execSync(
+  `rimraf -rf ${buildPath}`,
+  { stdio: [0, 1, 2] }
+);
+
 console.log(`Build application ${application}`);
 execSync(
-  `rm -rf ${buildPath} && npm install && npm run build`,
+  `npm install && npm run build`,
+  { stdio: [0, 1, 2] }
+);
+
+console.log(`Creating SBOM for application ${application}`);
+execSync(
+  `npm sbom --sbom-format cyclonedx --omit dev > ${buildPath}/pegelonline-dict-api-sbom.json`,
   { stdio: [0, 1, 2] }
 );
 

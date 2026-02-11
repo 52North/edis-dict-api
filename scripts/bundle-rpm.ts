@@ -1,4 +1,4 @@
-const { execSync } = require('child_process');
+const { execFileSync, execSync } = require('child_process');
 const buildRpm = require('rpm-builder');
 const versionInfo = require('../versions').versions
 
@@ -48,10 +48,14 @@ execSync(
 );
 
 console.log(`Creating SBOM for application ${application}`);
-execSync(
-  `npm sbom --sbom-format cyclonedx --omit dev > ${buildPath}/pegelonline-dict-api-sbom.json`,
-  { stdio: [0, 1, 2] }
-);
+execFileSync(process.execPath, [
+  './node_modules/@cyclonedx/cyclonedx-npm/bin/cyclonedx-npm-cli.js',
+  '--output-format', 'JSON',
+  '--omit', 'dev',
+  '--flatten-components',
+  '--output-reproducible',
+  '--output-file', `${buildPath}pegelonline-dict-api-sbom-sbom.json`
+]);
 
 buildRpm(options, function(err: any, rpm: any) {
   if (err) {

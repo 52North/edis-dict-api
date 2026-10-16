@@ -583,55 +583,73 @@ export class StationsService {
   private extendStation(station: PegelonlineStation) {
     this.fetchAddressData(station).subscribe({
       next: (data) => {
-        if (data.country == "") {
-        this.logger.log(
-        `Failed geocoding for station: ${station.longname} - ${this.count}/${this.stationCount}`);
-      } else {
-          station.country = data.country;
-            station.country_alternatives = data.country_alternatives;
-            station.land = data.land;
-            station.land_alternatives = data.land_alternatives;
-            station.kreis = data.kreis;
-            station.city = data.city;
-            station.city_alternatives = data.city_alternatives;
-            station.kreis_alternatives = this.mergeToArray([
+        if (data.country) {
+          this.setAddress(station, {
+            ...data,
+            kreis_alternatives: this.mergeToArray([
               data.kreis_alternatives,
               this.searchTermListSrvc.getAlternativeKreise(data.kreis),
-            ]);
-            station.water_alternatives =
-              this.searchTermListSrvc.getAlternativeGewaesser(
-            station.water.longname,
+            ]),
+          });
+        } else {
+          this.logger.warn(
+            `Failed geocoding for station ${station.longname}, keeping previous address data`,
           );
+          this.keepPreviousAddress(station);
         }
-      if (station.latitude && station.longitude) {
-          const drainage = this.getDrainage(
-            station.latitude,
-            station.longitude,
-          );
-          station.einzugsgebiet = drainage;
-          station.einzugsgebiet_alternatives =
-            this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
-        }
-        this.logger.log(`Enlarging data for station ${station.longname}`);
-        this.addAndSaveStation(station, true);
+        this.enlargeAndSaveStation(station);
       },
       error: (error) => {
         this.logger.error(
-          `Error occurred while requesting additional address data for ${station.longname}`,
+          `Error occurred while requesting additional address data for ${station.longname}, keeping previous address data`,
         );
         this.logger.error(error.stack);
-        this.addAndSaveStation(station, false);
+        this.keepPreviousAddress(station);
+        this.enlargeAndSaveStation(station);
       },
     });
   }
 
-  private addAndSaveStation(station: PegelonlineStation, replace: boolean) {
+  private setAddress(
+    station: PegelonlineStation,
+    address: Partial<AddressOptions>,
+  ) {
+    station.country = address.country;
+    station.country_alternatives = address.country_alternatives;
+    station.land = address.land;
+    station.land_alternatives = address.land_alternatives;
+    station.kreis = address.kreis;
+    station.kreis_alternatives = address.kreis_alternatives;
+    station.city = address.city;
+    station.city_alternatives = address.city_alternatives;
+  }
+
+  private keepPreviousAddress(station: PegelonlineStation) {
+    const previous = this.stations.find((st) => st.uuid === station.uuid);
+    if (previous) {
+      this.setAddress(station, previous);
+    }
+  }
+
+  // enlarge with data, that does not depend on geocoding
+  private enlargeAndSaveStation(station: PegelonlineStation) {
+    station.water_alternatives =
+      this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
+    if (station.latitude && station.longitude) {
+      const drainage = this.getDrainage(station.latitude, station.longitude);
+      station.einzugsgebiet = drainage;
+      station.einzugsgebiet_alternatives =
+        this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
+    }
+    this.logger.log(`Enlarging data for station ${station.longname}`);
+    this.addAndSaveStation(station);
+  }
+
+  private addAndSaveStation(station: PegelonlineStation) {
     this.count++;
     const match = this.stations.findIndex((st) => st.uuid === station.uuid);
     if (match >= 0) {
-      if (replace) {
-        this.stations[match] = station;
-      }
+      this.stations[match] = station;
     } else {
       this.stations.push(station);
     }
@@ -691,28 +709,40 @@ export class StationsService {
         this.harvestLanguageList.forEach((e) => {
           const data = res[e];
           const tupel = this.getTupel(data);
-          if (response.country !== tupel.country) {
-            if (!response.country_alternatives) {
-              response.country_alternatives = [];
-            }
-            response.country_alternatives.push(tupel.country);
-          }
-          if (response.land !== tupel.land) {
-            if (!response.land_alternatives) {
-              response.land_alternatives = [];
-            }
-            response.land_alternatives.push(tupel.land);
-          }
-          if (response.kreis !== tupel.kreis) {
-            if (!response.kreis_alternatives) {
-              response.kreis_alternatives = [];
-            }
-            response.kreis_alternatives.push(tupel.kreis);
-          }
+          response.country_alternatives = this.addAlternative(
+            response.country_alternatives,
+            response.country,
+            tupel.country,
+          );
+          response.land_alternatives = this.addAlternative(
+            response.land_alternatives,
+            response.land,
+            tupel.land,
+          );
+          response.kreis_alternatives = this.addAlternative(
+            response.kreis_alternatives,
+            response.kreis,
+            tupel.kreis,
+          );
         });
         return response;
       }),
     );
+  }
+
+  private addAlternative(
+    alternatives: string[] | undefined,
+    value: string,
+    alternative?: string,
+  ): string[] | undefined {
+    if (
+      !alternative ||
+      alternative === value ||
+      alternatives?.includes(alternative)
+    ) {
+      return alternatives;
+    }
+    return [...(alternatives ?? []), alternative];
   }
 
   private getTranscriptions(text?: string): string[] | undefined {
@@ -782,11 +812,25 @@ export class StationsService {
         }
         try {
           this.stations = JSON.parse(data);
+          this.stations.forEach((st) => this.removeEmptyAlternatives(st));
         } catch (error) {
           this.logger.warn(`Error while parsing stations data`);
         }
         resolve();
       });
+    });
+  }
+
+  // older harvests could store null entries, which break the search
+  private removeEmptyAlternatives(station: PegelonlineStation) {
+    const keys = [
+      'country_alternatives',
+      'land_alternatives',
+      'kreis_alternatives',
+      'city_alternatives',
+    ] as const;
+    keys.forEach((key) => {
+      station[key] = station[key]?.filter((e) => e);
     });
   }
 }

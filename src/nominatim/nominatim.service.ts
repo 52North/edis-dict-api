@@ -4,6 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { AxiosRequestConfig } from 'axios';
 import { catchError, map, Observable } from 'rxjs';
 
+// without timeout, hanging requests block the request limiter in AppModule forever
+const REQUEST_TIMEOUT_MS = 30000;
+
 export interface AddressData {
   id: string;
   county: string;
@@ -56,38 +59,37 @@ export class NominatimService {
     const url = `${this.nominatimBaseUrl}reverse?lat=${lat}&lon=${lon}&format=json`;
     const config: AxiosRequestConfig = {
       headers: { 'Accept-Language': lang },
+      timeout: REQUEST_TIMEOUT_MS,
     };
-    return this.httpService
-      .get<NominatimReverseResponse>(url, config)
-      .pipe(map((res) => res.data),
-	    catchError((err) => {
-	        this.logger.error(err);
-      	    throw "Error getting address data: " + err;
-      }))
-      .pipe(
-        map((res) => {
-            if (res.address) {
-                return {
-                    id: id,
-                    country: res.address.country,
-                    state: res.address.state,
-                    county: res.address.county,
-                    city: res.address.city,
-                };
-            } else if (res.error) {
-                this.logger.error(res.error);
-            } else {
-                this.logger.error("reverse geocoding failed for id:" + id);
-            }
-            return {
-                id: id,
-                country: "",
-                state: "",
-                county: "",
-                city: "",
-            };
-        }),
-      );
+    return this.httpService.get<NominatimReverseResponse>(url, config).pipe(
+      map((res) => res.data),
+      catchError((err) => {
+        throw new Error(
+          `Error getting address data for ${id} (${lang}): ${err.message}`,
+        );
+      }),
+      map((res) => {
+        if (res.address) {
+          return {
+            id: id,
+            country: res.address.country,
+            state: res.address.state,
+            county: res.address.county,
+            city: res.address.city,
+          };
+        }
+        this.logger.warn(
+          `Reverse geocoding failed for ${id} (${lang}): ${res.error ?? 'no address in response'}`,
+        );
+        return {
+          id: id,
+          country: '',
+          state: '',
+          county: '',
+          city: '',
+        };
+      }),
+    );
   }
 
   query(query: string): Observable<NominatimSearchResponse[]> {

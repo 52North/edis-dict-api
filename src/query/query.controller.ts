@@ -7,6 +7,7 @@ import {
   StationQuery,
   StationsService,
 } from '../stations/stations.service';
+import { StationQueryPipe } from './station-query.pipe';
 
 @Controller('search')
 @ApiTags('Suche')
@@ -25,7 +26,14 @@ export class QueryController {
     description: 'Liste von aufbereiteten Stationen',
     type: AggregatedStationResponse,
   })
-  search(@Query() query: StationQuery): Observable<AggregatedStationResponse> {
+  @ApiResponse({
+    status: 400,
+    description:
+      'Ungültige Suchparameter, z. B. eine falsch aufgebaute bbox oder ein mehrfach angegebener Parameter',
+  })
+  search(
+    @Query(StationQueryPipe) query: StationQuery,
+  ): Observable<AggregatedStationResponse> {
     return this.stationsSrvc
       .getStations(query)
       .pipe(map((st) => this.stationsSrvc.prepareResponse(st)));

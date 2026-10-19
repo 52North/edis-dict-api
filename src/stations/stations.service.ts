@@ -276,6 +276,28 @@ export class StationQuery {
   q?: string;
 }
 
+export type Bbox = [number, number, number, number];
+
+// parses "minLon,minLat,maxLon,maxLat", returns undefined if it is no valid bbox
+export function parseBbox(bbox: string): Bbox | undefined {
+  const coords = bbox.split(',').map((c) => (c.trim() ? Number(c) : NaN));
+  if (coords.length !== 4 || coords.some((c) => Number.isNaN(c))) {
+    return undefined;
+  }
+  const [minLon, minLat, maxLon, maxLat] = coords;
+  if (
+    minLon < -180 ||
+    maxLon > 180 ||
+    minLat < -90 ||
+    maxLat > 90 ||
+    minLon > maxLon ||
+    minLat > maxLat
+  ) {
+    return undefined;
+  }
+  return [minLon, minLat, maxLon, maxLat];
+}
+
 @Injectable()
 export class StationsService {
   private readonly logger = new Logger(StationsService.name);
@@ -539,12 +561,10 @@ export class StationsService {
     query: StationQuery,
     stations: PegelonlineStation[],
   ): PegelonlineStation[] {
-    const bboxFilter = query.bbox?.split(',');
-    if (bboxFilter && bboxFilter.length === 4) {
-      this.logger.log(`Filter with paramter bbox: ${bboxFilter}`);
-      const [minLon, minLat, maxLon, maxLat] = bboxFilter.map((c) =>
-        parseFloat(c),
-      );
+    const bbox = query.bbox ? parseBbox(query.bbox) : undefined;
+    if (bbox) {
+      this.logger.log(`Filter with paramter bbox: ${bbox}`);
+      const [minLon, minLat, maxLon, maxLat] = bbox;
       return stations.filter(
         (st) =>
           st.longitude >= minLon &&

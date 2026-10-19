@@ -10,7 +10,7 @@ Aufruf der Swagger-UI zur Dict API
 
 ## Suchparameter
 
-Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter werden diese durch eine UND-Verknüpfung kombiniert.
+Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter werden diese durch eine UND-Verknüpfung kombiniert. Jeder Parameter darf nur einmal angegeben werden, ungültige Angaben beantwortet die API mit HTTP 400. Unbekannte Parameter werden ignoriert.
 
 ### station
 
@@ -54,7 +54,7 @@ Suche per String matching nach Stationen mit angegebenem Messparameter
 
 ### bbox
 
-Suche per String matching nach Stationen in der durch Koordinaten angegebenen Bounding Box (`minLon, minLat, maxLon, maxLat`)
+Suche per String matching nach Stationen in der durch Koordinaten angegebenen Bounding Box (`minLon, minLat, maxLon, maxLat`). Erlaubt sind Längengrade von -180 bis 180 und Breitengrade von -90 bis 90, das Minimum darf nicht größer als das Maximum sein.
 > http://localhost:3000/search?bbox=7,52,8,53
 
 ### q

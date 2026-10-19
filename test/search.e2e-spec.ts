@@ -77,6 +77,26 @@ describe('Search API (e2e)', () => {
     expect(uuids(res)).toHaveLength(STATIONS.length);
   });
 
+  it('ignores unknown parameters like cache busters', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .query({ q: 'sachsen', bbox: '12,52,13,53', _: '1729339200000' })
+      .expect(200);
+
+    expect(uuids(res)).toEqual(['genthin']);
+  });
+
+  it.each([
+    ['an invalid bbox', 'bbox=abc', 'Parameter bbox must have the form'],
+    ['a repeated parameter', 'q=a&q=b', 'Parameter q must be a single value'],
+  ])('rejects %s', async (_, query, message) => {
+    const res = await request(app.getHttpServer())
+      .get(`/search?${query}`)
+      .expect(400);
+
+    expect(res.body.message).toContain(message);
+  });
+
   it('lists the options of a parameter', async () => {
     const res = await request(app.getHttpServer())
       .get('/options')

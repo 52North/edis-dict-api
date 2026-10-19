@@ -54,7 +54,7 @@ execFileSync(process.execPath, [
   '--omit', 'dev',
   '--flatten-components',
   '--output-reproducible',
-  '--output-file', `${buildPath}pegelonline-dict-api-sbom-sbom.json`
+  '--output-file', `${buildPath}pegelonline-dict-api-sbom.json`
 ]);
 
 buildRpm(options, function(err: any, rpm: any) {

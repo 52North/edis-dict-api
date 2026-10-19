@@ -1,10 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as http from 'http';
-import * as https from 'https';
 import * as express from 'express';
-import * as fs from 'fs';
 
 import {
   DocumentBuilder,
@@ -22,8 +19,6 @@ async function bootstrap() {
 
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3000);
-  const key = config.get<string>('KEY_FILE');
-  const cert = config.get<string>('CERT_FILE');
 
   app.enableCors();
 

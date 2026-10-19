@@ -26,19 +26,6 @@ interface NominatimReverseResponse {
   };
 }
 
-export interface NominatimSearchResponse {
-  place_id: number;
-  osm_type: string;
-  osm_id: number;
-  lat: string;
-  lon: string;
-  category: string;
-  place_rank: number;
-  name: string;
-  type: string;
-  addresstype: string;
-}
-
 @Injectable()
 export class NominatimService {
   private nominatimBaseUrl =
@@ -90,13 +77,5 @@ export class NominatimService {
         };
       }),
     );
-  }
-
-  query(query: string): Observable<NominatimSearchResponse[]> {
-    return this.httpService
-      .get<
-        NominatimSearchResponse[]
-      >(`${this.nominatimBaseUrl}/search?q=${query}&format=jsonv2`)
-      .pipe(map((res) => res.data));
   }
 }

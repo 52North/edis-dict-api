@@ -482,7 +482,7 @@ export class StationsService {
   ): PegelonlineStation[] {
     if (query.parameter) {
       const filter = query.parameter;
-      this.logger.log(`Filter with Gewaesser: ${filter}`);
+      this.logger.log(`Filter with Parameter: ${filter}`);
       return stations.filter((st) =>
         st.timeseries.find(
           (ts) =>
@@ -765,14 +765,16 @@ export class StationsService {
 
   private getTranscriptions(text?: string): string[] | undefined {
     if (text) {
-      if (text.indexOf('ü') >= 0) {
-        return [text.replaceAll('ü', 'ue')];
-      }
-      if (text.indexOf('ä') >= 0) {
-        return [text.replaceAll('ä', 'ae')];
-      }
-      if (text.indexOf('ö') >= 0) {
-        return [text.replaceAll('ö', 'oe')];
+      const transcription = text
+        .replaceAll('ä', 'ae')
+        .replaceAll('ö', 'oe')
+        .replaceAll('ü', 'ue')
+        .replaceAll('Ä', 'Ae')
+        .replaceAll('Ö', 'Oe')
+        .replaceAll('Ü', 'Ue')
+        .replaceAll('ß', 'ss');
+      if (transcription !== text) {
+        return [transcription];
       }
     }
     return undefined;
@@ -844,7 +846,7 @@ export class StationsService {
           this.stations = JSON.parse(data);
           this.stations.forEach((st) => this.removeEmptyAlternatives(st));
         } catch (error) {
-          this.logger.warn(`Error while parsing stations data`);
+          this.logger.warn(`Error while parsing stations data: ${error}`);
         }
         resolve();
       });

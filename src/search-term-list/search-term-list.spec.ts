@@ -36,6 +36,11 @@ describe('SearchTermListService', () => {
   it.each([
     ['Landkreis Celle', ['CE']],
     ['Heidekreis', ['HK']],
+    ['Prignitz', ['PR']],
+    ['Salzlandkreis', ['SLK', 'ASL', 'BBG', 'SBK', 'SFT']],
+    // cities must not get the alternatives of the surrounding kreis
+    ['Koblenz', undefined],
+    ['Mainz', undefined],
     [undefined, undefined],
   ])('finds the alternatives of the kreis %s', (kreis, expected) => {
     expect(service.getAlternativeKreise(kreis)).toEqual(expected);

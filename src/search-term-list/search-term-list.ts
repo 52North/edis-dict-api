@@ -53,21 +53,26 @@ export class SearchTermListService {
 
   getAlternativeKreise(kreis?: string): string[] | undefined {
     if (!kreis) return;
-    kreis = kreis
+    const name = this.removeKreisWords(kreis).toLocaleLowerCase();
+    const match = this.searchTermList.find((e) => {
+      if (e.Suchwortkategorie === 'Landkreis') {
+        // whole names, a substring match would e.g. find "Mayen-Koblenz" for the city "Koblenz"
+        return (
+          !!e.Suchworte &&
+          this.removeKreisWords(e.Suchworte).toLocaleLowerCase() === name
+        );
+      }
+    });
+    return this.handleMatch(match);
+  }
+
+  private removeKreisWords(kreis: string): string {
+    return kreis
       .replaceAll('Landkreis', '')
       .replaceAll('landkreis', '')
       .replaceAll('Kreis', '')
       .replaceAll('kreis', '')
       .trim();
-    const match = this.searchTermList.find((e) => {
-      if (e.Suchwortkategorie === 'Landkreis') {
-        return (
-          e.Suchworte?.toLocaleLowerCase().indexOf(kreis.toLocaleLowerCase()) >=
-          0
-        );
-      }
-    });
-    return this.handleMatch(match);
   }
 
   private handleMatch(match: ListEntry) {

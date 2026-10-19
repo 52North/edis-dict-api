@@ -11,7 +11,7 @@ import {
 } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { firstValueFrom, Observable, of, throwError } from 'rxjs';
+import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
 
 import { createStation, STATIONS } from '../../test/fixtures';
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
@@ -108,7 +108,7 @@ describe('StationsService', () => {
       STATIONS_FILE_PATH: stationsFile(),
       EINZUGSGEBIETE_FILE_PATH: join(dir, 'einzugsgebiete.geojson'),
       PEGELONLINE_BASE_URL: 'http://pegelonline',
-      ADDITIONAL_HARVEST_LANGUAGE_LIST: 'en',
+      ADDITIONAL_HARVEST_LANGUAGE_LIST: 'en,fr',
       RUN_DATA_ENLARGING_ON_INIT: 'false',
     };
     service = new StationsService(
@@ -240,7 +240,7 @@ describe('StationsService', () => {
           kreis: 'Köln',
           kreis_alternatives: ['Koeln', 'Cologne', 'K'],
           city: 'Köln',
-          city_alternatives: ['Koeln'],
+          city_alternatives: ['Koeln', 'Cologne'],
           water_alternatives: ['Rhine'],
           einzugsgebiet: 'Rhein',
         }),
@@ -273,7 +273,7 @@ describe('StationsService', () => {
         () => of(address(undefined, 'Nordrhein-Westfalen', undefined, 'Köln')),
       ],
       [
-        'the request fails',
+        'all requests fail',
         () => throwError(() => new Error('Request failed')),
       ],
     ])('keeps the previous address if %s', (_, geocode) => {
@@ -293,6 +293,36 @@ describe('StationsService', () => {
           city: 'Köln',
           water_alternatives: ['Rhine'],
           einzugsgebiet: 'Rhein',
+        }),
+      ]);
+    });
+
+    it('updates the address if only an additional language fails', () => {
+      service['stations'] = structuredClone(STATIONS.slice(0, 1));
+
+      harvest([fresh('koeln')], (lang) => {
+        if (lang === 'en') {
+          return throwError(() => new Error('Request failed'));
+        }
+        return of(
+          lang === 'de'
+            ? address('Deutschland', 'Nordrhein-Westfalen', undefined, 'Köln')
+            : address(
+                'Allemagne',
+                'Rhénanie-du-Nord-Westphalie',
+                undefined,
+                'Cologne',
+              ),
+        );
+      });
+
+      expect(storedStations()).toEqual([
+        expect.objectContaining({
+          country: 'Deutschland',
+          country_alternatives: ['Allemagne'],
+          land_alternatives: ['Rhénanie-du-Nord-Westphalie'],
+          kreis_alternatives: ['Koeln', 'Cologne'],
+          city_alternatives: ['Koeln', 'Cologne'],
         }),
       ]);
     });
@@ -330,6 +360,48 @@ describe('StationsService', () => {
         expect.anything(),
         expect.anything(),
       );
+    });
+
+    it('requests the stations from pegelonline with a timeout', () => {
+      harvest([], () => of(NOT_FOUND));
+
+      expect(httpService.get).toHaveBeenCalledWith(
+        'http://pegelonline/stations.json?includeTimeseries=true',
+        { timeout: 60000 },
+      );
+    });
+
+    it('skips a harvest while another one is running', () => {
+      const pending = new Subject<AddressData>();
+      harvest([fresh('koeln')], (lang) =>
+        lang === 'de' ? pending : of(NOT_FOUND),
+      );
+
+      service['fetchStations']();
+      expect(httpService.get).toHaveBeenCalledTimes(1);
+
+      pending.next(NOT_FOUND);
+      pending.complete();
+      service['fetchStations']();
+      expect(httpService.get).toHaveBeenCalledTimes(2);
+    });
+
+    it.each<[string, () => Observable<AxiosResponse>]>([
+      [
+        'pegelonline fails',
+        () => throwError(() => new Error('Request failed')),
+      ],
+      [
+        'pegelonline delivers no stations',
+        () => of({ data: [] } as AxiosResponse),
+      ],
+    ])('allows the next harvest if %s', (_, response) => {
+      httpService.get.mockImplementation(response);
+
+      service['fetchStations']();
+      service['fetchStations']();
+
+      expect(httpService.get).toHaveBeenCalledTimes(2);
     });
 
     it('writes stations.json once at the end of the harvest', async () => {

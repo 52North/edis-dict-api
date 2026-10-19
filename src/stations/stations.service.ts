@@ -6,10 +6,13 @@ import * as turf from '@turf/turf';
 import { AxiosRequestConfig } from 'axios';
 import { CronJob } from 'cron';
 import { readFile, readFileSync, rename, writeFile } from 'fs';
-import { forkJoin, map, Observable, of } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
 import { SearchTermListService } from '../search-term-list/search-term-list';
+
+// the station list with all timeseries is large, so allow more time than for nominatim
+const PEGELONLINE_TIMEOUT_MS = 60000;
 
 type FilterPropertyKey =
   | 'country'
@@ -312,6 +315,7 @@ export class StationsService {
 
   private stationCount = 0;
   private count = 0;
+  private harvestRunning = false;
 
   // loaded on first use during a harvest and released afterwards, the parsed file needs ~150 MB
   private drainageAreas?: DrainageArea[];
@@ -553,8 +557,13 @@ export class StationsService {
   }
 
   private fetchStations() {
+    if (this.harvestRunning) {
+      this.logger.warn(`Previous harvest is still running, skipping this one`);
+      return;
+    }
+    this.harvestRunning = true;
     this.logger.log(`Start fetching stations`);
-    const config: AxiosRequestConfig = {};
+    const config: AxiosRequestConfig = { timeout: PEGELONLINE_TIMEOUT_MS };
     if (this.proxyProtocol && this.proxyHost && this.proxyPort) {
       config.proxy = {
         protocol: this.proxyProtocol,
@@ -574,12 +583,16 @@ export class StationsService {
           );
           this.stationCount = filteredStations.length;
           this.count = 0;
+          if (this.stationCount === 0) {
+            this.harvestRunning = false;
+          }
           filteredStations.forEach((st) => {
             this.extendStation(st);
           });
         },
         error: (err) => {
           this.logger.error(err.stack);
+          this.harvestRunning = false;
         },
       });
   }
@@ -675,6 +688,7 @@ export class StationsService {
     this.logger.log(`Finished enlarging ${this.count} stations`);
     this.drainageAreas = undefined;
     this.saveFetchedStations();
+    this.harvestRunning = false;
   }
 
   private mergeToArray(entries: string[][]): string[] | undefined {
@@ -702,12 +716,15 @@ export class StationsService {
       ),
     };
     this.harvestLanguageList.forEach((lang) => {
-      requests[lang] = this.nominatimSrvc.getAdressData(
-        s.uuid,
-        s.latitude,
-        s.longitude,
-        lang,
-      );
+      requests[lang] = this.nominatimSrvc
+        .getAdressData(s.uuid, s.latitude, s.longitude, lang)
+        .pipe(
+          // a failed additional language only lacks its alternatives, the station is still updated
+          catchError((error) => {
+            this.logger.warn(`${error.message}, skipping this language`);
+            return of(undefined);
+          }),
+        );
     });
     return forkJoin(requests).pipe(
       map((res) => {
@@ -726,6 +743,9 @@ export class StationsService {
         };
         this.harvestLanguageList.forEach((e) => {
           const data = res[e];
+          if (!data) {
+            return;
+          }
           const tupel = this.getTupel(data);
           response.country_alternatives = this.addAlternative(
             response.country_alternatives,
@@ -741,6 +761,11 @@ export class StationsService {
             response.kreis_alternatives,
             response.kreis,
             tupel.kreis,
+          );
+          response.city_alternatives = this.addAlternative(
+            response.city_alternatives,
+            response.city,
+            tupel.city,
           );
         });
         return response;

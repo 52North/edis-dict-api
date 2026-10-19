@@ -12,7 +12,6 @@ const INTERVAL_MS = 100;
 @Module({
   imports: [
     HttpModule.register({
-      // timeout: 5000,
       maxRedirects: 5,
     }),
     ConfigModule.forRoot(),

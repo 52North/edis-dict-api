@@ -345,16 +345,19 @@ export class StationsService {
   }
 
   getStations(query: StationQuery = {}): Observable<PegelonlineStation[]> {
-    if (query.q) {
-      return this.filterQ(query.q);
-    } else {
-      return of(this.stations).pipe(
-        map((stations) => this.filterResults(stations, query)),
-      );
-    }
+    return of(this.stations).pipe(
+      map((stations) => this.filterResults(stations, query)),
+    );
   }
 
-  private filterQ(filter: string): Observable<PegelonlineStation[]> {
+  private filterQ(
+    query: StationQuery,
+    stations: PegelonlineStation[],
+  ): PegelonlineStation[] {
+    if (!query.q) {
+      return stations;
+    }
+    const filter = query.q;
     const fields = [
       'shortname',
       'longname',
@@ -374,31 +377,30 @@ export class StationsService {
     ];
     const waterFields = ['shortname', 'longname'];
     const timeseriesFields = ['shortname', 'longname'];
-    return of(
-      this.stations.filter((station) => {
-        const matchField = fields.some((f) => {
-          const prop = station[f];
-          if (typeof prop === 'string') {
-            return prop.toLowerCase().indexOf(filter.toLowerCase()) >= 0;
-          } else if (prop instanceof Array) {
-            return prop.some(
-              (e) => e.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-            );
-          }
-        });
-        const matchWaterFields = waterFields.some(
-          (wf) =>
-            station.water[wf] &&
-            station.water[wf].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-        );
-        const matchTimeseriesFields = timeseriesFields.some((tsf) =>
-          station.timeseries.some(
-            (ts) => ts[tsf].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-          ),
-        );
-        return matchField || matchWaterFields || matchTimeseriesFields;
-      }),
-    );
+    this.logger.log(`Filter with q: ${filter}`);
+    return stations.filter((station) => {
+      const matchField = fields.some((f) => {
+        const prop = station[f];
+        if (typeof prop === 'string') {
+          return prop.toLowerCase().indexOf(filter.toLowerCase()) >= 0;
+        } else if (prop instanceof Array) {
+          return prop.some(
+            (e) => e.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
+          );
+        }
+      });
+      const matchWaterFields = waterFields.some(
+        (wf) =>
+          station.water[wf] &&
+          station.water[wf].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
+      );
+      const matchTimeseriesFields = timeseriesFields.some((tsf) =>
+        station.timeseries.some(
+          (ts) => ts[tsf].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
+        ),
+      );
+      return matchField || matchWaterFields || matchTimeseriesFields;
+    });
   }
 
   prepareResponse(stations: PegelonlineStation[]): AggregatedStationResponse {
@@ -432,6 +434,7 @@ export class StationsService {
     originStations: PegelonlineStation[],
     query: StationQuery,
   ): PegelonlineStation[] {
+    originStations = this.filterQ(query, originStations);
     originStations = this.filterStation(query, originStations);
     originStations = this.filterGewaesser(query, originStations);
     originStations = this.filter(query, 'land', originStations);

@@ -18,7 +18,8 @@ RUN chown node:node /app
 
 COPY --from=build /src/node_modules ./node_modules
 COPY --from=build /src/dist ./dist
-COPY package.json .env stations.json einzugsgebiete.geojson Suchwortliste-Dict-API_v0-1_2022-06-23.xlsx ./
+COPY package.json einzugsgebiete.geojson Suchwortliste-Dict-API_v0-1_2022-06-23.xlsx ./
+COPY .env.example .env
 
 USER node
 EXPOSE 3000

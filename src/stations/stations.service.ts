@@ -5,7 +5,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as turf from '@turf/turf';
 import { AxiosRequestConfig } from 'axios';
 import { CronJob } from 'cron';
-import { readFile, readFileSync, writeFile } from 'fs';
+import { readFile, readFileSync, rename, writeFile } from 'fs';
 import { forkJoin, map, Observable, of } from 'rxjs';
 
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
@@ -64,6 +64,11 @@ interface AddressTupel {
   land: string;
   kreis: string;
   city: string;
+}
+
+interface DrainageArea {
+  name?: string;
+  polygon: ReturnType<typeof turf.multiPolygon>;
 }
 
 export class PegelonlineStation {
@@ -308,6 +313,9 @@ export class StationsService {
 
   private stationCount = 0;
   private count = 0;
+
+  // loaded on first use during a harvest and released afterwards, the parsed file needs ~150 MB
+  private drainageAreas?: DrainageArea[];
 
   constructor(
     private readonly httpService: HttpService,
@@ -597,7 +605,7 @@ export class StationsService {
           );
           this.keepPreviousAddress(station);
         }
-        this.enlargeAndSaveStation(station);
+        this.enlargeAndAddStation(station);
       },
       error: (error) => {
         this.logger.error(
@@ -605,7 +613,7 @@ export class StationsService {
         );
         this.logger.error(error.stack);
         this.keepPreviousAddress(station);
-        this.enlargeAndSaveStation(station);
+        this.enlargeAndAddStation(station);
       },
     });
   }
@@ -632,7 +640,7 @@ export class StationsService {
   }
 
   // enlarge with data, that does not depend on geocoding
-  private enlargeAndSaveStation(station: PegelonlineStation) {
+  private enlargeAndAddStation(station: PegelonlineStation) {
     station.water_alternatives =
       this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
     if (station.latitude && station.longitude) {
@@ -642,10 +650,10 @@ export class StationsService {
         this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
     }
     this.logger.log(`Enlarging data for station ${station.longname}`);
-    this.addAndSaveStation(station);
+    this.addStation(station);
   }
 
-  private addAndSaveStation(station: PegelonlineStation) {
+  private addStation(station: PegelonlineStation) {
     this.count++;
     const match = this.stations.findIndex((st) => st.uuid === station.uuid);
     if (match >= 0) {
@@ -654,8 +662,16 @@ export class StationsService {
       this.stations.push(station);
     }
     this.logger.log(
-      `save station ${station.longname} - ${this.count}/${this.stationCount}`,
+      `added station ${station.longname} - ${this.count}/${this.stationCount}`,
     );
+    if (this.count === this.stationCount) {
+      this.finishHarvest();
+    }
+  }
+
+  private finishHarvest() {
+    this.logger.log(`Finished enlarging ${this.count} stations`);
+    this.drainageAreas = undefined;
     this.saveFetchedStations();
   }
 
@@ -770,37 +786,49 @@ export class StationsService {
   }
 
   private getDrainage(lat: number, lon: number): string | undefined {
-    const fileContent = readFileSync(this.einzugsgebieteFilePath, 'utf-8');
-    const geojson = JSON.parse(fileContent);
+    this.drainageAreas ??= this.loadDrainageAreas();
     const point = turf.point([lon, lat, 0]);
-    if (
-      geojson?.type === 'FeatureCollection' &&
-      geojson.features instanceof Array
-    ) {
-      const match = geojson.features.find((feature) => {
-        const polygon = turf.multiPolygon(feature.geometry.coordinates);
-        const inside = turf.booleanPointInPolygon(point, polygon);
-        return inside;
-      });
-      if (match) {
-        if (match.properties.NAME_2500) return match.properties.NAME_2500;
-        if (match.properties.NAME_1000) return match.properties.NAME_1000;
-        if (match.properties.NAME_500) return match.properties.NAME_500;
-      }
-    }
+    return this.drainageAreas.find((area) =>
+      turf.booleanPointInPolygon(point, area.polygon),
+    )?.name;
   }
 
+  private loadDrainageAreas(): DrainageArea[] {
+    const fileContent = readFileSync(this.einzugsgebieteFilePath, 'utf-8');
+    const geojson = JSON.parse(fileContent);
+    if (
+      geojson?.type !== 'FeatureCollection' ||
+      !(geojson.features instanceof Array)
+    ) {
+      return [];
+    }
+    return geojson.features.map((feature) => ({
+      name:
+        feature.properties.NAME_2500 ||
+        feature.properties.NAME_1000 ||
+        feature.properties.NAME_500 ||
+        undefined,
+      // with a bbox, booleanPointInPolygon skips most polygons without checking the coordinates
+      polygon: turf.multiPolygon(feature.geometry.coordinates, undefined, {
+        bbox: turf.bbox(feature),
+      }),
+    }));
+  }
+
+  // write to a temporary file first, so a crash while writing cannot break the existing file
   private saveFetchedStations() {
-    writeFile(
-      this.stationsFilePath,
-      JSON.stringify(this.stations, null, 2),
-      (err) => {
-        if (err) {
-          this.logger.error(err);
-          return;
+    const tmpFilePath = `${this.stationsFilePath}.tmp`;
+    writeFile(tmpFilePath, JSON.stringify(this.stations, null, 2), (err) => {
+      if (err) {
+        this.logger.error(err);
+        return;
+      }
+      rename(tmpFilePath, this.stationsFilePath, (renameErr) => {
+        if (renameErr) {
+          this.logger.error(renameErr);
         }
-      },
-    );
+      });
+    });
   }
 
   private loadStations() {

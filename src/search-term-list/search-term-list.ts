@@ -13,7 +13,7 @@ interface ListEntry {
 @Injectable()
 export class SearchTermListService {
   private searchTermList: ListEntry[];
-  
+
   constructor(private readonly configService: ConfigService) {
     const suchwortlisteFilePath = this.configService.get<string>(
       'SUCHWORTLISTE_FILE_PATH',

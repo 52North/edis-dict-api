@@ -94,9 +94,9 @@ export class NominatimService {
 
   query(query: string): Observable<NominatimSearchResponse[]> {
     return this.httpService
-      .get<NominatimSearchResponse[]>(
-        `${this.nominatimBaseUrl}/search?q=${query}&format=jsonv2`,
-      )
+      .get<
+        NominatimSearchResponse[]
+      >(`${this.nominatimBaseUrl}/search?q=${query}&format=jsonv2`)
       .pipe(map((res) => res.data));
   }
 }

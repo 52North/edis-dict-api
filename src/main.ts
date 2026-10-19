@@ -15,9 +15,10 @@ import {
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-
   const server = express();
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {logger: ['verbose'],});
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+    logger: ['verbose'],
+  });
 
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3000);

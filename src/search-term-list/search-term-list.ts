@@ -27,10 +27,10 @@ export class SearchTermListService {
   getAlternativeGewaesser(gewaesser: string): string[] | undefined {
     const match = this.searchTermList.find((e) => {
       if (e.Suchwortkategorie === 'Gewässer / Flüsse') {
+        // terms are single quoted names, a substring match would e.g. find "DORTMUND-EMS-KANAL" for "EMS"
         return (
-          e.Suchworte?.toLocaleLowerCase().indexOf(
-            gewaesser.toLocaleLowerCase(),
-          ) >= 0
+          e.Suchworte?.replaceAll('"', '').trim().toLocaleLowerCase() ===
+          gewaesser.toLocaleLowerCase()
         );
       }
     });

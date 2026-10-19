@@ -16,8 +16,7 @@ type FilterPropertyKey =
   | 'land'
   | 'kreis'
   | 'agency'
-  | 'einzugsgebiet'
-  | 'gewaesser';
+  | 'einzugsgebiet';
 
 export class PegelonlineTimeseries {
   @ApiProperty({
@@ -463,7 +462,12 @@ export class StationsService {
       this.logger.log(`Filter with Gewaesser: ${filter}`);
       stations = stations.filter(
         (e) =>
-          e.water.shortname.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
+          e.water.shortname.toLowerCase().indexOf(filter.toLowerCase()) >= 0 ||
+          // whole name ignoring case, a substring match would let "Elbe" also find e.g. the Elbe-Havel-Kanal
+          e.water.longname?.toLowerCase() === filter.toLowerCase() ||
+          e.water_alternatives?.some(
+            (alt) => alt.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
+          ),
       );
     }
     return stations;
@@ -515,11 +519,6 @@ export class StationsService {
         }
         if (propertyKey === 'einzugsgebiet' && !match) {
           return st.einzugsgebiet_alternatives?.some(
-            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
-          );
-        }
-        if (propertyKey === 'gewaesser' && !match) {
-          return st.water_alternatives?.some(
             (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
           );
         }

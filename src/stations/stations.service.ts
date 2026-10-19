@@ -192,7 +192,7 @@ export class PegelonlineStation {
 
   @ApiProperty({
     description: 'Timeseries aus Pegelonline-API',
-    type: PegelonlineTimeseries,
+    type: [PegelonlineTimeseries],
   })
   timeseries: PegelonlineTimeseries[];
 }

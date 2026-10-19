@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { INestApplication, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SchemaObject, SwaggerModule } from '@nestjs/swagger';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
@@ -111,5 +112,18 @@ describe('Search API (e2e)', () => {
     ['unsupported', { parameter: 'unknown' }],
   ])('rejects a %s options parameter', async (_, query) => {
     await request(app.getHttpServer()).get('/options').query(query).expect(400);
+  });
+
+  it('describes the timeseries of a station as an array', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const schemas = document.components.schemas as Record<string, SchemaObject>;
+
+    expect(schemas.PegelonlineStation.properties.timeseries).toMatchObject({
+      type: 'array',
+      items: { $ref: '#/components/schemas/PegelonlineTimeseries' },
+    });
   });
 });

@@ -5,7 +5,16 @@ import * as turf from '@turf/turf';
 import { AxiosRequestConfig } from 'axios';
 import { CronJob } from 'cron';
 import { readFile, readFileSync, rename, writeFile } from 'fs';
-import { catchError, forkJoin, map, Observable, of } from 'rxjs';
+import {
+  catchError,
+  EMPTY,
+  finalize,
+  forkJoin,
+  map,
+  mergeMap,
+  Observable,
+  of,
+} from 'rxjs';
 
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
 import { StationQuery } from '../query/station-query';
@@ -81,8 +90,6 @@ export class StationsService {
     '00 00 * * *',
   );
 
-  private stationCount = 0;
-  private count = 0;
   private harvestRunning = false;
 
   // loaded on first use during a harvest and released afterwards, the parsed file needs ~150 MB
@@ -165,44 +172,46 @@ export class StationsService {
     const url = `${this.pegelonlineBaseUrl}/stations.json?includeTimeseries=true`;
     this.httpService
       .get<PegelonlineStation[]>(url, config)
-      .pipe(map((res) => res.data))
-      .subscribe({
-        next: (fetchedStations) => {
-          this.cleanupStationList(fetchedStations);
-          const filteredStations = fetchedStations.filter((st) =>
-            this.filterStations(st),
-          );
-          this.stationCount = filteredStations.length;
-          this.count = 0;
-          if (this.stationCount === 0) {
-            this.harvestRunning = false;
+      .pipe(
+        map((res) => res.data.filter((st) => this.hasCoordinates(st))),
+        mergeMap((stations) => {
+          // rather a fault of pegelonline than the end of all stations
+          if (!stations.length) {
+            this.logger.warn(`Received no stations, keeping the previous ones`);
+            return EMPTY;
           }
-          filteredStations.forEach((st) => {
-            this.extendStation(st);
-          });
-        },
-        error: (err) => {
-          this.logger.error(err.stack);
+          // keeps the order of pegelonline
+          return forkJoin(stations.map((st) => this.enrichStation(st)));
+        }),
+        finalize(() => {
+          this.drainageAreas = undefined;
           this.harvestRunning = false;
-        },
+        }),
+      )
+      .subscribe({
+        next: (stations) => this.finishHarvest(stations),
+        error: (err) => this.logger.error(err.stack),
       });
   }
 
-  private cleanupStationList(newList: PegelonlineStation[]) {
-    this.stations = this.stations.filter(
-      (st) => newList.find((nSt) => nSt.uuid === st.uuid) !== undefined,
-    );
-  }
-
-  private extendStation(station: PegelonlineStation) {
-    this.fetchAddressData(station).subscribe({
-      next: (data) => {
-        if (data.country) {
+  private enrichStation(
+    station: PegelonlineStation,
+  ): Observable<PegelonlineStation> {
+    return this.fetchAddressData(station).pipe(
+      catchError((error) => {
+        this.logger.error(
+          `Error occurred while requesting address data for ${station.longname}`,
+        );
+        this.logger.error(error.stack);
+        return of(undefined);
+      }),
+      map((address) => {
+        if (address?.country) {
           this.setAddress(station, {
-            ...data,
+            ...address,
             kreis_alternatives: this.mergeToArray([
-              data.kreis_alternatives,
-              this.searchTermListSrvc.getAlternativeKreise(data.kreis),
+              address.kreis_alternatives,
+              this.searchTermListSrvc.getAlternativeKreise(address.kreis),
             ]),
           });
         } else {
@@ -211,17 +220,18 @@ export class StationsService {
           );
           this.keepPreviousAddress(station);
         }
-        this.enlargeAndAddStation(station);
-      },
-      error: (error) => {
+        this.enlargeStation(station);
+        return station;
+      }),
+      // a single broken station must not stop the whole harvest
+      catchError((error) => {
         this.logger.error(
-          `Error occurred while requesting additional address data for ${station.longname}, keeping previous address data`,
+          `Error occurred while enriching station ${station.longname}`,
         );
         this.logger.error(error.stack);
-        this.keepPreviousAddress(station);
-        this.enlargeAndAddStation(station);
-      },
-    });
+        return of(station);
+      }),
+    );
   }
 
   private setAddress(
@@ -246,7 +256,7 @@ export class StationsService {
   }
 
   // enlarge with data, that does not depend on geocoding
-  private enlargeAndAddStation(station: PegelonlineStation) {
+  private enlargeStation(station: PegelonlineStation) {
     station.water_alternatives =
       this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
     if (station.latitude && station.longitude) {
@@ -256,30 +266,13 @@ export class StationsService {
         this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
     }
     this.logger.log(`Enlarging data for station ${station.longname}`);
-    this.addStation(station);
   }
 
-  private addStation(station: PegelonlineStation) {
-    this.count++;
-    const match = this.stations.findIndex((st) => st.uuid === station.uuid);
-    if (match >= 0) {
-      this.stations[match] = station;
-    } else {
-      this.stations.push(station);
-    }
-    this.logger.log(
-      `added station ${station.longname} - ${this.count}/${this.stationCount}`,
-    );
-    if (this.count === this.stationCount) {
-      this.finishHarvest();
-    }
-  }
-
-  private finishHarvest() {
-    this.logger.log(`Finished enlarging ${this.count} stations`);
-    this.drainageAreas = undefined;
+  // searches see the previous stations until the whole harvest is done
+  private finishHarvest(stations: PegelonlineStation[]) {
+    this.stations = stations;
+    this.logger.log(`Finished enlarging ${stations.length} stations`);
     this.saveFetchedStations();
-    this.harvestRunning = false;
   }
 
   private mergeToArray(entries: string[][]): string[] | undefined {
@@ -287,14 +280,12 @@ export class StationsService {
     return list.length ? list : undefined;
   }
 
-  private filterStations(s: PegelonlineStation): boolean {
+  private hasCoordinates(s: PegelonlineStation): boolean {
     if (s.latitude && s.longitude) {
       return true;
-    } else {
-      this.stationCount--;
-      this.logger.warn(`${s.shortname} has no coordinates`);
-      return false;
     }
+    this.logger.warn(`${s.shortname} has no coordinates`);
+    return false;
   }
 
   private fetchAddressData(s: PegelonlineStation): Observable<AddressOptions> {

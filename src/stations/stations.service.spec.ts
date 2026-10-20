@@ -363,6 +363,47 @@ describe('StationsService', () => {
       );
     });
 
+    it('finishes the harvest if enriching a station fails', () => {
+      searchTermListService.getAlternativeGewaesser.mockImplementation(
+        (water: string) => {
+          if (water === 'RHEIN') {
+            throw new Error('broken');
+          }
+        },
+      );
+
+      harvest([fresh('koeln'), fresh('herbrum')], () => of(NOT_FOUND));
+
+      expect(storedStations().map((st) => st.uuid)).toEqual([
+        'koeln',
+        'herbrum',
+      ]);
+      service['fetchStations']();
+      expect(httpService.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('serves the previous stations until the harvest is finished', () => {
+      service['stations'] = structuredClone(STATIONS);
+      const pending = new Subject<AddressData>();
+
+      harvest([fresh('koeln')], (lang) =>
+        lang === 'de' ? pending : of(NOT_FOUND),
+      );
+
+      expect(storedStations()).toEqual(STATIONS);
+      pending.next(NOT_FOUND);
+      pending.complete();
+      expect(storedStations().map((st) => st.uuid)).toEqual(['koeln']);
+    });
+
+    it('keeps the stations if pegelonline delivers none', () => {
+      service['stations'] = structuredClone(STATIONS);
+
+      harvest([], () => of(NOT_FOUND));
+
+      expect(storedStations()).toEqual(STATIONS);
+    });
+
     it('requests the stations from pegelonline with a timeout', () => {
       harvest([], () => of(NOT_FOUND));
 

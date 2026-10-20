@@ -8,8 +8,9 @@ import { readFile, readFileSync, rename, writeFile } from 'fs';
 import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
-import { parseBbox, StationQuery } from '../query/station-query';
+import { StationQuery } from '../query/station-query';
 import { SearchTermListService } from '../search-term-list/search-term-list';
+import { searchStations } from './station-filter';
 import {
   AggregatedStationResponse,
   PegelonlineStation,
@@ -18,13 +19,6 @@ import {
 
 // the station list with all timeseries is large, so allow more time than for nominatim
 const PEGELONLINE_TIMEOUT_MS = 60000;
-
-type FilterPropertyKey =
-  | 'country'
-  | 'land'
-  | 'kreis'
-  | 'agency'
-  | 'einzugsgebiet';
 
 interface AddressOptions {
   id: string;
@@ -122,63 +116,8 @@ export class StationsService {
     }
   }
 
-  getStations(query: StationQuery = {}): Observable<PegelonlineStation[]> {
-    return of(this.stations).pipe(
-      map((stations) => this.filterResults(stations, query)),
-    );
-  }
-
-  private filterQ(
-    query: StationQuery,
-    stations: PegelonlineStation[],
-  ): PegelonlineStation[] {
-    if (!query.q) {
-      return stations;
-    }
-    const filter = query.q;
-    const fields = [
-      'shortname',
-      'longname',
-      'agency',
-      'country',
-      'country_alternatives',
-      'land',
-      'land_alternatives',
-      'kreis',
-      'kreis_alternatives',
-      'uuid',
-      'water_alternatives',
-      'einzugsgebiet',
-      'einzugsgebiet_alternatives',
-      'city',
-      'city_alternatives',
-    ];
-    const waterFields = ['shortname', 'longname'];
-    const timeseriesFields = ['shortname', 'longname'];
-    this.logger.log(`Filter with q: ${filter}`);
-    return stations.filter((station) => {
-      const matchField = fields.some((f) => {
-        const prop = station[f];
-        if (typeof prop === 'string') {
-          return prop.toLowerCase().indexOf(filter.toLowerCase()) >= 0;
-        } else if (prop instanceof Array) {
-          return prop.some(
-            (e) => e.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-          );
-        }
-      });
-      const matchWaterFields = waterFields.some(
-        (wf) =>
-          station.water[wf] &&
-          station.water[wf].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-      );
-      const matchTimeseriesFields = timeseriesFields.some((tsf) =>
-        station.timeseries.some(
-          (ts) => ts[tsf].toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-        ),
-      );
-      return matchField || matchWaterFields || matchTimeseriesFields;
-    });
+  getStations(query: StationQuery = {}): PegelonlineStation[] {
+    return searchStations(this.stations, query);
   }
 
   prepareResponse(stations: PegelonlineStation[]): AggregatedStationResponse {
@@ -206,126 +145,6 @@ export class StationsService {
       pegelonlinelinks,
       stations: preparedStations,
     };
-  }
-
-  private filterResults(
-    originStations: PegelonlineStation[],
-    query: StationQuery,
-  ): PegelonlineStation[] {
-    originStations = this.filterQ(query, originStations);
-    originStations = this.filterStation(query, originStations);
-    originStations = this.filterGewaesser(query, originStations);
-    originStations = this.filter(query, 'land', originStations);
-    originStations = this.filter(query, 'agency', originStations);
-    originStations = this.filter(query, 'country', originStations);
-    originStations = this.filter(query, 'einzugsgebiet', originStations);
-    originStations = this.filter(query, 'kreis', originStations);
-    // TODO: add region filter
-    originStations = this.filterParameter(query, originStations);
-    originStations = this.filterBbox(query, originStations);
-    return originStations;
-  }
-
-  private filterStation(query: StationQuery, stations: PegelonlineStation[]) {
-    if (query.station) {
-      const filter = query.station;
-      this.logger.log(`Filter with Station: ${filter}`);
-      stations = stations.filter(
-        (e) => e.shortname.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-      );
-    }
-    return stations;
-  }
-
-  private filterGewaesser(query: StationQuery, stations: PegelonlineStation[]) {
-    if (query.gewaesser) {
-      const filter = query.gewaesser;
-      this.logger.log(`Filter with Gewaesser: ${filter}`);
-      stations = stations.filter(
-        (e) =>
-          e.water.shortname.toLowerCase().indexOf(filter.toLowerCase()) >= 0 ||
-          // whole name ignoring case, a substring match would let "Elbe" also find e.g. the Elbe-Havel-Kanal
-          e.water.longname?.toLowerCase() === filter.toLowerCase() ||
-          e.water_alternatives?.some(
-            (alt) => alt.toLowerCase().indexOf(filter.toLowerCase()) >= 0,
-          ),
-      );
-    }
-    return stations;
-  }
-
-  private filterParameter(
-    query: StationQuery,
-    stations: PegelonlineStation[],
-  ): PegelonlineStation[] {
-    if (query.parameter) {
-      const filter = query.parameter;
-      this.logger.log(`Filter with Parameter: ${filter}`);
-      return stations.filter((st) =>
-        st.timeseries.find(
-          (ts) =>
-            ts.longname.toLowerCase() === filter.toLowerCase() ||
-            ts.shortname.toLowerCase() === filter.toLowerCase(),
-        ),
-      );
-    }
-    return stations;
-  }
-
-  private filter(
-    query: StationQuery,
-    propertyKey: FilterPropertyKey,
-    stations: PegelonlineStation[],
-  ): PegelonlineStation[] {
-    const filterTerm = query[propertyKey];
-    if (filterTerm) {
-      this.logger.log(`Filter with paramter ${propertyKey}: ${filterTerm}`);
-      return stations.filter((st) => {
-        const match =
-          st[propertyKey]?.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
-        if (propertyKey === 'country' && !match) {
-          return st.country_alternatives?.some(
-            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
-          );
-        }
-        if (propertyKey === 'land' && !match) {
-          return st.land_alternatives?.some(
-            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
-          );
-        }
-        if (propertyKey === 'kreis' && !match) {
-          return st.kreis_alternatives?.some(
-            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
-          );
-        }
-        if (propertyKey === 'einzugsgebiet' && !match) {
-          return st.einzugsgebiet_alternatives?.some(
-            (e) => e.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0,
-          );
-        }
-        return match;
-      });
-    }
-    return stations;
-  }
-
-  private filterBbox(
-    query: StationQuery,
-    stations: PegelonlineStation[],
-  ): PegelonlineStation[] {
-    const bbox = query.bbox ? parseBbox(query.bbox) : undefined;
-    if (bbox) {
-      this.logger.log(`Filter with paramter bbox: ${bbox}`);
-      const [minLon, minLat, maxLon, maxLat] = bbox;
-      return stations.filter(
-        (st) =>
-          st.longitude >= minLon &&
-          st.longitude <= maxLon &&
-          st.latitude >= minLat &&
-          st.latitude <= maxLat,
-      );
-    }
-    return stations;
   }
 
   private fetchStations() {

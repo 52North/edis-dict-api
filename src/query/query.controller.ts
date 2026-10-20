@@ -1,6 +1,5 @@
 import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { map, Observable } from 'rxjs';
 
 import { AggregatedStationResponse } from '../stations/station.model';
 import { StationsService } from '../stations/stations.service';
@@ -31,9 +30,10 @@ export class QueryController {
   })
   search(
     @Query(StationQueryPipe) query: StationQuery,
-  ): Observable<AggregatedStationResponse> {
-    return this.stationsSrvc
-      .getStations(query)
-      .pipe(map((st) => this.stationsSrvc.prepareResponse(st)));
+  ): AggregatedStationResponse {
+    this.logger.log(`Search with ${JSON.stringify(query)}`);
+    return this.stationsSrvc.prepareResponse(
+      this.stationsSrvc.getStations(query),
+    );
   }
 }

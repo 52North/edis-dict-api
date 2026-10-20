@@ -11,7 +11,7 @@ import {
 } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 
 import { createStation, STATIONS } from '../../test/fixtures';
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
@@ -154,8 +154,8 @@ describe('StationsService', () => {
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
   describe('search', () => {
-    const search = async (query: StationQuery) =>
-      (await firstValueFrom(service.getStations(query))).map((st) => st.uuid);
+    const search = (query: StationQuery) =>
+      service.getStations(query).map((st) => st.uuid);
 
     beforeEach(() => (service['stations'] = structuredClone(STATIONS)));
 
@@ -190,10 +190,13 @@ describe('StationsService', () => {
       ['bbox', { bbox: '6,50,8,54' }, ['koeln', 'herbrum']],
       ['q', { q: 'rhein' }, ['koeln']],
       ['q in timeseries', { q: 'wassertemperatur' }, ['koeln', 'dresden']],
+      ['q in alternatives', { q: 'germany' }, ['koeln']],
+      ['q in the long name of the water', { q: 'havel' }, ['genthin']],
+      ['q in kreis', { q: 'emsland' }, ['herbrum']],
       ['q and land', { q: 'wassertemperatur', land: 'sachsen' }, ['dresden']],
       ['q and bbox', { q: 'sachsen', bbox: '12,52,13,53' }, ['genthin']],
-    ])('filters by %s', async (_, query, expected) => {
-      expect(await search(query)).toEqual(expected);
+    ])('filters by %s', (_, query, expected) => {
+      expect(search(query)).toEqual(expected);
     });
 
     it('adds mqtt topics and pegelonline links to the response', () => {
@@ -430,7 +433,7 @@ describe('StationsService', () => {
       await service['loadStations']();
 
       expect(storedStations()[0].kreis_alternatives).toEqual(['NF']);
-      const found = await firstValueFrom(service.getStations({ q: 'nf' }));
+      const found = service.getStations({ q: 'nf' });
       expect(found.map((st) => st.uuid)).toEqual(['pellworm']);
     });
 

@@ -1,6 +1,5 @@
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { firstValueFrom, of } from 'rxjs';
 
 import { STATIONS } from '../../test/fixtures';
 import { StationsService } from '../stations/stations.service';
@@ -8,10 +7,9 @@ import { OptionsController } from './options.controller';
 
 describe('OptionsController', () => {
   let controller: OptionsController;
-  const stationsService = { getStations: jest.fn(() => of(STATIONS)) };
+  const stationsService = { getStations: jest.fn(() => STATIONS) };
 
-  const options = (parameter: string) =>
-    firstValueFrom(controller.findAll({ parameter }));
+  const options = (parameter: string) => controller.findAll({ parameter });
 
   beforeAll(() => Logger.overrideLogger(false));
 
@@ -31,8 +29,8 @@ describe('OptionsController', () => {
     ['parameter', ['W', 'WASSERSTAND ROHDATEN', 'WASSERTEMPERATUR', 'WT']],
   ])(
     'lists the sorted values and alternatives for %s',
-    async (parameter, expected) => {
-      expect(await options(parameter)).toEqual(expected);
+    (parameter, expected) => {
+      expect(options(parameter)).toEqual(expected);
     },
   );
 
@@ -42,8 +40,8 @@ describe('OptionsController', () => {
     );
   });
 
-  it('rejects an unsupported parameter', async () => {
-    await expect(options('unknown')).rejects.toThrow(
+  it('rejects an unsupported parameter', () => {
+    expect(() => options('unknown')).toThrow(
       new HttpException('unsupported parameter', HttpStatus.BAD_REQUEST),
     );
   });

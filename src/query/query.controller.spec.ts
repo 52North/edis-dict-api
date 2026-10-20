@@ -1,5 +1,5 @@
+import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { firstValueFrom, of } from 'rxjs';
 
 import { STATIONS } from '../../test/fixtures';
 import { AggregatedStationResponse } from '../stations/station.model';
@@ -13,6 +13,8 @@ describe('QueryController', () => {
     prepareResponse: jest.fn(),
   };
 
+  beforeAll(() => Logger.overrideLogger(false));
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QueryController],
@@ -22,14 +24,12 @@ describe('QueryController', () => {
     controller = module.get<QueryController>(QueryController);
   });
 
-  it('searches with the query and returns the prepared response', async () => {
+  it('searches with the query and returns the prepared response', () => {
     const response = { stations: STATIONS } as AggregatedStationResponse;
-    stationsService.getStations.mockReturnValue(of(STATIONS));
+    stationsService.getStations.mockReturnValue(STATIONS);
     stationsService.prepareResponse.mockReturnValue(response);
 
-    expect(await firstValueFrom(controller.search({ q: 'köln' }))).toBe(
-      response,
-    );
+    expect(controller.search({ q: 'köln' })).toBe(response);
     expect(stationsService.getStations).toHaveBeenCalledWith({ q: 'köln' });
     expect(stationsService.prepareResponse).toHaveBeenCalledWith(STATIONS);
   });

@@ -66,6 +66,22 @@ describe('NominatimService', () => {
     });
   });
 
+  it.each([
+    ['a town', { town: 'Celle' }, 'Celle'],
+    ['a village', { village: 'Eschede' }, 'Eschede'],
+    [
+      'a municipality',
+      { municipality: 'Samtgemeinde Lachendorf' },
+      'Samtgemeinde Lachendorf',
+    ],
+    ['a town before a village', { town: 'Passau', village: 'Ries' }, 'Passau'],
+    ['a city before a town', { city: 'Köln', town: 'Porz' }, 'Köln'],
+  ])('takes %s as city', async (_, address, expected) => {
+    respond({ place_id: 1, address });
+
+    expect((await geocode()).city).toBe(expected);
+  });
+
   it('returns empty values if nothing was found', async () => {
     respond({ error: 'Unable to geocode' });
 

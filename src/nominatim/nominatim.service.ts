@@ -7,7 +7,10 @@ import { catchError, map, Observable } from 'rxjs';
 // without timeout, hanging requests block the request limiter in AppModule forever
 const REQUEST_TIMEOUT_MS = 30000;
 
-/** Nominatim leaves out the parts it does not know, e.g. the county of a city. */
+/**
+ * Nominatim leaves out the parts it does not know, e.g. the county of a city.
+ * The city may also be a town, village or municipality.
+ */
 export interface AddressData {
   id: string;
   county?: string;
@@ -23,6 +26,9 @@ interface NominatimReverseResponse {
     state?: string;
     county?: string;
     city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
     country?: string;
   };
 }
@@ -72,7 +78,12 @@ export class NominatimService {
             country: res.address.country,
             state: res.address.state,
             county: res.address.county,
-            city: res.address.city,
+            // town before village, e.g. Passau also comes with the village Ries
+            city:
+              res.address.city ||
+              res.address.town ||
+              res.address.village ||
+              res.address.municipality,
           };
         }
         this.logger.warn(

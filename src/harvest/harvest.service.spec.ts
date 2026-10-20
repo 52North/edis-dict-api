@@ -91,6 +91,7 @@ describe('HarvestService', () => {
   let dir: string;
   let store: StationStore;
   let service: HarvestService;
+  let replace: jest.SpyInstance<Promise<void>>;
   const httpService = { get: jest.fn() };
   const nominatimService = { getAdressData: jest.fn() };
   const searchTermListService = {
@@ -115,6 +116,7 @@ describe('HarvestService', () => {
       get: (key: string, defaultValue?: string) => config[key] ?? defaultValue,
     } as ConfigService;
     store = new StationStore(configService);
+    replace = jest.spyOn(store, 'replace');
     service = new HarvestService(
       httpService as unknown as HttpService,
       new GeocodingService(
@@ -159,7 +161,11 @@ describe('HarvestService', () => {
     createService();
   });
 
-  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  // stations.json is saved in the background, the directory must not be removed while writing
+  afterEach(async () => {
+    await Promise.all(replace.mock.results.map((result) => result.value));
+    rmSync(dir, { recursive: true, force: true });
+  });
 
   it('enriches the stations with address, synonyms and drainage area', () => {
     searchTermListService.getAlternativeGewaesser.mockReturnValue(['Rhine']);
@@ -380,12 +386,10 @@ describe('HarvestService', () => {
   });
 
   it('saves the stations once at the end of the harvest', async () => {
-    const replace = jest.spyOn(store, 'replace');
-
     harvest([fresh('koeln'), fresh('herbrum')], () => of(NOT_FOUND));
 
     expect(replace).toHaveBeenCalledTimes(1);
-    await waitFor(() => existsSync(stationsFile()));
+    await replace.mock.results[0].value;
     const saved = JSON.parse(readFileSync(stationsFile(), 'utf-8'));
     expect(saved.map((st: PegelonlineStation) => st.uuid)).toEqual([
       'koeln',

@@ -36,6 +36,7 @@ export function createStation(
 export const STATIONS: PegelonlineStation[] = [
   createStation({
     uuid: 'koeln',
+    number: '2730010',
     shortname: 'KÖLN',
     longname: 'KÖLN',
     agency: 'RHEIN',
@@ -55,6 +56,7 @@ export const STATIONS: PegelonlineStation[] = [
   }),
   createStation({
     uuid: 'herbrum',
+    number: '3770030',
     shortname: 'HERBRUM',
     longname: 'HERBRUM',
     agency: 'MEPPEN',
@@ -68,6 +70,7 @@ export const STATIONS: PegelonlineStation[] = [
   }),
   createStation({
     uuid: 'genthin',
+    number: '587535',
     shortname: 'GENTHIN',
     longname: 'GENTHIN',
     agency: 'MAGDEBURG',
@@ -78,6 +81,7 @@ export const STATIONS: PegelonlineStation[] = [
   }),
   createStation({
     uuid: 'dresden',
+    number: '501060',
     shortname: 'DRESDEN',
     longname: 'DRESDEN',
     agency: 'DRESDEN',

@@ -21,6 +21,7 @@ const OPTION_VALUES: Record<
   (station: PegelonlineStation) => (string | undefined)[]
 > = {
   station: (st) => [st.shortname],
+  number: (st) => [st.number],
   agency: (st) => [st.agency],
   gewaesser: (st) => [st.water.shortname, ...(st.water_alternatives ?? [])],
   kreis: (st) => [st.kreis, ...(st.kreis_alternatives ?? [])],

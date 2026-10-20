@@ -17,6 +17,11 @@ Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter wer
 Suche per String matching nach Stationen mit dem angegebenen Namen
 > http://localhost:3000/search?station=köln
 
+### number
+
+Suche nach der Station mit der angegebenen Pegelnummer, nur die ganze Nummer trifft
+> http://localhost:3000/search?number=2710080
+
 ### gewaesser
 
 Suche per String matching nach Stationen an dem angegebenen Gewässer

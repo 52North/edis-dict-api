@@ -27,6 +27,8 @@ describe('StationsService', () => {
   it.each<[string, StationQuery, string[]]>([
     ['no parameter', {}, ['koeln', 'herbrum', 'genthin', 'dresden']],
     ['station', { station: 'köln' }, ['koeln']],
+    ['number', { number: '2730010' }, ['koeln']],
+    ['number by part of the number', { number: '2730' }, []],
     ['gewaesser by short name', { gewaesser: 'rhein' }, ['koeln']],
     ['gewaesser by synonym', { gewaesser: 'Rhine' }, ['koeln']],
     [
@@ -58,6 +60,8 @@ describe('StationsService', () => {
     ['q in alternatives', { q: 'germany' }, ['koeln']],
     ['q in the long name of the water', { q: 'havel' }, ['genthin']],
     ['q in kreis', { q: 'emsland' }, ['herbrum']],
+    ['q in number', { q: '2730010' }, ['koeln']],
+    ['q in part of the number', { q: '5010' }, ['dresden']],
     ['q and land', { q: 'wassertemperatur', land: 'sachsen' }, ['dresden']],
     ['q and bbox', { q: 'sachsen', bbox: '12,52,13,53' }, ['genthin']],
   ])('filters by %s', (_, query, expected) => {

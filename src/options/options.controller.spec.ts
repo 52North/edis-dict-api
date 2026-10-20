@@ -24,6 +24,7 @@ describe('OptionsController', () => {
 
   it.each([
     ['station', ['DRESDEN', 'GENTHIN', 'HERBRUM', 'KÖLN']],
+    ['number', ['2730010', '3770030', '501060', '587535']],
     ['agency', ['DRESDEN', 'MAGDEBURG', 'MEPPEN', 'RHEIN']],
     ['gewaesser', ['DEK', 'EHK', 'ELBE', 'Elb', 'RHEIN', 'Rhine']],
     ['kreis', ['Dresden', 'Koeln', 'Köln', 'Landkreis Emsland']],

@@ -10,6 +10,7 @@ import { parseBbox, StationQuery } from './station-query';
 // a record, so the compiler reports parameters added to StationQuery but missing here
 const PARAMETERS: Record<keyof StationQuery, true> = {
   station: true,
+  number: true,
   gewaesser: true,
   agency: true,
   land: true,

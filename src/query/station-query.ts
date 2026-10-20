@@ -12,6 +12,12 @@ export class StationQuery {
   station?: string;
   @ApiProperty({
     required: false,
+    description:
+      'Suche über eine Pegelnummer, nur die ganze Nummer (z.B. <code>2710080</code>)',
+  })
+  number?: string;
+  @ApiProperty({
+    required: false,
     description: 'Suche über ein Gewässer (z.B. <code>Rhein</code>)',
   })
   gewaesser?: string;

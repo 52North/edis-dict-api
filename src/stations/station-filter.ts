@@ -20,6 +20,8 @@ function equalsIgnoringCase(value: string | undefined, term: string): boolean {
 // TODO: add region filter
 const FILTERS: Record<keyof StationQuery, StationFilter> = {
   station: (st, term) => matches(st.shortname, term),
+  // the whole number, the numbers consist of digits only
+  number: (st, term) => st.number === term,
   gewaesser: (st, term) =>
     matches(st.water.shortname, term) ||
     // whole name ignoring case, a substring match would let "Elbe" also find e.g. the Elbe-Havel-Kanal
@@ -61,6 +63,7 @@ const FILTERS: Record<keyof StationQuery, StationFilter> = {
   q: (st, term) =>
     [
       st.uuid,
+      st.number,
       st.shortname,
       st.longname,
       st.agency,

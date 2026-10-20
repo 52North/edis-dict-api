@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * The parameters of /search, all optional and combined with AND. How each one
+ * matches is defined in station-filter.ts.
+ */
 export class StationQuery {
   @ApiProperty({
     required: false,
@@ -33,7 +37,7 @@ export class StationQuery {
   einzugsgebiet?: string;
   @ApiProperty({
     required: false,
-    description: 'Suche über ein Landkreis (z.B. <code>Emsland</code>)',
+    description: 'Suche über einen Landkreis (z.B. <code>Emsland</code>)',
   })
   kreis?: string;
   // @ApiProperty({
@@ -61,9 +65,13 @@ export class StationQuery {
   q?: string;
 }
 
+/** minLon, minLat, maxLon, maxLat in degrees, like the station coordinates */
 export type Bbox = [number, number, number, number];
 
-// parses "minLon,minLat,maxLon,maxLat", returns undefined if it is no valid bbox
+/**
+ * Parses "minLon,minLat,maxLon,maxLat".
+ * @returns undefined if it is no valid bbox
+ */
 export function parseBbox(bbox: string): Bbox | undefined {
   const coords = bbox.split(',').map((c) => (c.trim() ? Number(c) : NaN));
   if (coords.length !== 4 || coords.some((c) => Number.isNaN(c))) {

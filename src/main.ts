@@ -11,9 +11,14 @@ import {
 
 import { AppModule } from './app.module';
 
+/**
+ * Starts the API on PORT, with the Swagger UI at /api and CORS open for all
+ * origins.
+ */
 async function bootstrap() {
   const server = express();
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+    // the lowest level, so all levels are logged
     logger: ['verbose'],
   });
 
@@ -29,6 +34,7 @@ async function bootstrap() {
     .setVersion(process.env.npm_package_version ?? 'unknown')
     .build();
   const documentOptions: SwaggerDocumentOptions = {
+    // plain method names like "search" instead of "QueryController_search"
     operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
   };
   const document = SwaggerModule.createDocument(

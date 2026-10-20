@@ -8,6 +8,7 @@ interface DrainageArea {
   polygon: ReturnType<typeof turf.multiPolygon>;
 }
 
+/** Finds the drainage area (Einzugsgebiet) of a point in EINZUGSGEBIETE_FILE_PATH. */
 @Injectable()
 export class DrainageAreasService {
   private readonly filePath = this.configService.get<string>(
@@ -20,7 +21,10 @@ export class DrainageAreasService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  // name of the drainage area containing the point
+  /**
+   * Name of the drainage area containing the point, undefined outside of all
+   * areas.
+   */
   find(lat: number, lon: number): string | undefined {
     this.areas ??= this.load();
     const point = turf.point([lon, lat, 0]);
@@ -29,6 +33,7 @@ export class DrainageAreasService {
     )?.name;
   }
 
+  /** Frees the parsed areas after a harvest, the next find loads them again. */
   release() {
     this.areas = undefined;
   }
@@ -43,6 +48,7 @@ export class DrainageAreasService {
       return [];
     }
     return geojson.features.map((feature) => ({
+      // NAME_2500 is the coarsest level, the smaller ones only step in where it has no name
       name:
         feature.properties.NAME_2500 ||
         feature.properties.NAME_1000 ||

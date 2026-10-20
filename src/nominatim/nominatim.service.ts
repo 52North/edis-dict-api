@@ -7,7 +7,7 @@ import { catchError, map, Observable } from 'rxjs';
 // without timeout, hanging requests block the request limiter in AppModule forever
 const REQUEST_TIMEOUT_MS = 30000;
 
-// nominatim leaves out the parts it does not know, e.g. the county of a city
+/** Nominatim leaves out the parts it does not know, e.g. the county of a city. */
 export interface AddressData {
   id: string;
   county?: string;
@@ -27,6 +27,10 @@ interface NominatimReverseResponse {
   };
 }
 
+/**
+ * Reverse geocoding with the nominatim at NOMINATIM_BASE_URL, e.g. the one of
+ * docker/docker-compose.yml.
+ */
 @Injectable()
 export class NominatimService {
   private nominatimBaseUrl =
@@ -38,6 +42,11 @@ export class NominatimService {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * The address at the point in the given language (Accept-Language). Request
+   * errors become an Error naming the station and language, a response without
+   * address gives empty values instead.
+   */
   getAdressData(
     id: string,
     lat: number,

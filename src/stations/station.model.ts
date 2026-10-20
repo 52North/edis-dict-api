@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * A timeseries of a station from the pegelonline REST API v2. mqtttopic and
+ * pegelonlinelink are only added for the response, see
+ * StationsService.prepareResponse.
+ */
 export class PegelonlineTimeseries {
   @ApiProperty({
     description: 'Shortname zur Zeitreihe',
@@ -25,15 +30,27 @@ export class PegelonlineTimeseries {
     description: 'Link zu den Messwerten',
   })
   pegelonlinelink: string;
+
+  @ApiProperty({
+    description: 'Abstand der Messwerte in Minuten',
+  })
   equidistance: number;
 }
 
+/**
+ * A station from the pegelonline REST API v2, enriched by the harvest with
+ * address, alternative names and drainage area. Stored in stations.json and
+ * returned by /search.
+ */
 export class PegelonlineStation {
   @ApiProperty({
     description: 'Eindeutige Stations-ID aus Pegelonline-API',
   })
   uuid: string;
 
+  @ApiProperty({
+    description: 'Pegelnummer aus Pegelonline-API',
+  })
   number: string;
 
   @ApiProperty({
@@ -46,7 +63,11 @@ export class PegelonlineStation {
   })
   longname: string;
 
-  km: number;
+  @ApiProperty({
+    description: 'Flusskilometer aus Pegelonline-API',
+    required: false,
+  })
+  km?: number;
 
   @ApiProperty({
     description: 'Agency aus Pegelonline-API',
@@ -74,7 +95,7 @@ export class PegelonlineStation {
   };
 
   @ApiProperty({
-    description: 'Alternative Bennenungen zu Water',
+    description: 'Alternative Benennungen zu Water',
     required: false,
   })
   water_alternatives?: string[];
@@ -86,7 +107,7 @@ export class PegelonlineStation {
   city?: string;
 
   @ApiProperty({
-    description: 'Alternative Bennenungen zur Stadt',
+    description: 'Alternative Benennungen zur Stadt',
     required: false,
   })
   city_alternatives?: string[];
@@ -98,7 +119,7 @@ export class PegelonlineStation {
   country?: string;
 
   @ApiProperty({
-    description: 'Alternative Bennenungen zum Land',
+    description: 'Alternative Benennungen zum Land',
     required: false,
   })
   country_alternatives?: string[];
@@ -110,7 +131,7 @@ export class PegelonlineStation {
   land?: string;
 
   @ApiProperty({
-    description: 'Alternative Bennenungen zum Bundesland',
+    description: 'Alternative Benennungen zum Bundesland',
     required: false,
   })
   land_alternatives?: string[];
@@ -122,7 +143,7 @@ export class PegelonlineStation {
   kreis?: string;
 
   @ApiProperty({
-    description: 'Alternative Bennenungen zum Landkreis',
+    description: 'Alternative Benennungen zum Landkreis',
     required: false,
   })
   kreis_alternatives?: string[];
@@ -134,7 +155,7 @@ export class PegelonlineStation {
   einzugsgebiet?: string;
 
   @ApiProperty({
-    description: 'Alternative Bennenungen zum Einzugsgebiet',
+    description: 'Alternative Benennungen zum Einzugsgebiet',
     required: false,
   })
   einzugsgebiet_alternatives?: string[];
@@ -152,6 +173,7 @@ export class PegelonlineStation {
   timeseries: PegelonlineTimeseries[];
 }
 
+/** The response of /search. */
 export class AggregatedStationResponse {
   @ApiProperty({
     description: 'Liste aller MQTT topics zu den Stationen',
@@ -170,7 +192,7 @@ export class AggregatedStationResponse {
   stations: PegelonlineStation[];
 }
 
-// only stations with coordinates are harvested
+/** Only stations with coordinates are harvested. */
 export type LocatedStation = PegelonlineStation & {
   latitude: number;
   longitude: number;

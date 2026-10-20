@@ -6,6 +6,7 @@ import { StationsService } from '../stations/stations.service';
 import { StationQuery } from './station-query';
 import { StationQueryPipe } from './station-query.pipe';
 
+/** GET /search, the search over the enriched stations. */
 @Controller('search')
 @ApiTags('Suche')
 export class QueryController {
@@ -13,6 +14,10 @@ export class QueryController {
 
   constructor(private stationsSrvc: StationsService) {}
 
+  /**
+   * The stations matching all given parameters, with the mqtt topics and
+   * pegelonline links of the result.
+   */
   @Get()
   @ApiOperation({
     description:

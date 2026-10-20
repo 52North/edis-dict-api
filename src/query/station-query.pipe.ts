@@ -22,6 +22,11 @@ const PARAMETERS: Record<keyof StationQuery, true> = {
 };
 const PARAMETER_NAMES = new Set(Object.keys(PARAMETERS));
 
+/**
+ * Checks the parameters of /search before the filters run. Repeated parameters
+ * and invalid bboxes are rejected with 400, unknown parameters are only logged
+ * and passed on, the filters ignore them.
+ */
 @Injectable()
 export class StationQueryPipe implements PipeTransform<
   Record<string, unknown>,

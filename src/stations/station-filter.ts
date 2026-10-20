@@ -3,7 +3,7 @@ import { PegelonlineStation } from './station.model';
 
 type StationFilter = (station: PegelonlineStation, term: string) => boolean;
 
-// ignoring case, the term may be any part of the value
+/** Ignoring case, the term may be any part of the value. */
 function matches(value: string | undefined, term: string): boolean {
   return !!value && value.toLowerCase().includes(term.toLowerCase());
 }
@@ -57,6 +57,7 @@ const FILTERS: Record<keyof StationQuery, StationFilter> = {
       st.latitude <= maxLat
     );
   },
+  // the fields of all other parameters except bbox, plus uuid, longname and city, all as substrings
   q: (st, term) =>
     [
       st.uuid,
@@ -82,7 +83,7 @@ const FILTERS: Record<keyof StationQuery, StationFilter> = {
     ].some((alternatives) => matchesAny(alternatives, term)),
 };
 
-// a station has to match all given parameters
+/** The stations matching all given parameters, in their stored order. */
 export function searchStations(
   stations: PegelonlineStation[],
   query: StationQuery,

@@ -4,7 +4,7 @@ import { readFile, rename, writeFile } from 'fs/promises';
 
 import { PegelonlineStation } from './station.model';
 
-// the enriched stations in memory and in stations.json
+/** The enriched stations in memory and in stations.json (STATIONS_FILE_PATH). */
 @Injectable()
 export class StationStore {
   private readonly logger = new Logger(StationStore.name);
@@ -22,16 +22,21 @@ export class StationStore {
     return this.stations;
   }
 
+  /** During a harvest, this is still the station of the previous one. */
   get(uuid: string): PegelonlineStation | undefined {
     return this.stations.find((st) => st.uuid === uuid);
   }
 
-  // replaces all stations at once and saves them, never rejects
+  /** Replaces all stations at once and saves them, never rejects. */
   replace(stations: PegelonlineStation[]): Promise<void> {
     this.stations = stations;
     return this.save();
   }
 
+  /**
+   * Reads the stations saved by the last harvest. A missing or invalid file,
+   * e.g. on the first start, leaves the current stations.
+   */
   async load(): Promise<void> {
     let data: string;
     try {

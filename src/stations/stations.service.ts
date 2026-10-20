@@ -10,6 +10,7 @@ import {
   PegelonlineTimeseries,
 } from './station.model';
 
+/** Searches the stored stations and prepares them for the response. */
 @Injectable()
 export class StationsService {
   private readonly pegelonlineBaseUrl = this.configService.get<string>(
@@ -25,10 +26,17 @@ export class StationsService {
     private readonly configService: ConfigService,
   ) {}
 
+  /** The stations matching the query, without a query all stations. */
   getStations(query: StationQuery = {}): PegelonlineStation[] {
     return searchStations(this.stationStore.getAll(), query);
   }
 
+  /**
+   * Adds the mqtt topic and the link to the pegelonline measurements to copies
+   * of the stations and their timeseries, the stored stations stay unchanged.
+   * The station topics and the timeseries links are also collected for the
+   * whole response. The + are mqtt wildcards for a single topic level.
+   */
   prepareResponse(stations: PegelonlineStation[]): AggregatedStationResponse {
     // TODO: add here some intelligent aggregation of mqtt topics
     const mqtttopics: string[] = [];

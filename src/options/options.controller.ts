@@ -12,6 +12,7 @@ import { StationQuery } from '../query/station-query';
 import { PegelonlineStation } from '../stations/station.model';
 import { StationsService } from '../stations/stations.service';
 
+// q and bbox have no fixed values to list
 type OptionParameter = Exclude<keyof StationQuery, 'q' | 'bbox'>;
 
 // the values of a search parameter, with the alternative names the search also finds
@@ -34,6 +35,11 @@ const OPTION_VALUES: Record<
 // a set, so names of the object prototype like "constructor" are no parameters
 const OPTION_PARAMETERS = new Set(Object.keys(OPTION_VALUES));
 
+/**
+ * GET /options?parameter=…, the sorted distinct values of a search parameter
+ * over all stations, including the alternative names. Not part of the OpenAPI
+ * spec.
+ */
 @Controller('options')
 @ApiExcludeController()
 export class OptionsController {

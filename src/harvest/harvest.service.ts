@@ -28,7 +28,12 @@ import { GeocodingService, StationAddress } from './geocoding.service';
 // the station list with all timeseries is large, so allow more time than for nominatim
 const PEGELONLINE_TIMEOUT_MS = 60000;
 
-// fetches the stations from pegelonline and enriches them with address, synonyms and drainage area
+/**
+ * Fetches the stations from pegelonline and enriches them with address,
+ * synonyms and drainage area. Runs on CRON_TIME_FOR_DATA_ENLARGING and, with
+ * RUN_DATA_ENLARGING_ON_INIT, on start. Stations without coordinates are left
+ * out, the enriched stations replace the stored ones at the end.
+ */
 @Injectable()
 export class HarvestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(HarvestService.name);
@@ -63,7 +68,10 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
   ) {}
 
-  // load first, so searches find the stations right after the start and the first harvest can keep their addresses
+  /**
+   * Loads the stored stations first, so searches find them right after the
+   * start and the first harvest can keep their addresses.
+   */
   async onModuleInit() {
     await this.stationStore.load();
     this.cronJob = CronJob.from({
@@ -78,6 +86,10 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     return this.cronJob?.stop();
   }
 
+  /**
+   * Runs one harvest, skipped while the previous one is still running. The
+   * PROXY_* settings only apply to the request to pegelonline.
+   */
   private fetchStations() {
     if (this.harvestRunning) {
       this.logger.warn(`Previous harvest is still running, skipping this one`);
@@ -118,6 +130,10 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
       });
   }
 
+  /**
+   * Adds address, synonyms and drainage area to the station. If geocoding
+   * fails, the station keeps the address of the previous harvest.
+   */
   private enrichStation(
     station: LocatedStation,
   ): Observable<PegelonlineStation> {
@@ -179,7 +195,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // enlarge with data, that does not depend on geocoding
+  /** Adds the data that does not depend on geocoding: water synonyms and drainage area. */
   private enlargeStation(station: LocatedStation) {
     station.water_alternatives =
       this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
@@ -193,7 +209,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Enlarging data for station ${station.longname}`);
   }
 
-  // searches see the previous stations until the whole harvest is done
+  /** Searches see the previous stations until the whole harvest is done. */
   private finishHarvest(stations: PegelonlineStation[]) {
     this.stationStore.replace(stations);
     this.logger.log(`Finished enlarging ${stations.length} stations`);

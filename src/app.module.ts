@@ -13,6 +13,11 @@ import { SearchTermListService } from './search-term-list/search-term-list';
 import { StationStore } from './stations/station-store';
 import { StationsService } from './stations/stations.service';
 
+/**
+ * Limits the concurrent outgoing requests of the shared HttpService, which the
+ * harvest uses for pegelonline and nominatim, to MAX_REQUESTS_COUNT (99 if
+ * unset, .env.example sets 5).
+ */
 @Module({
   imports: [
     HttpModule.register({

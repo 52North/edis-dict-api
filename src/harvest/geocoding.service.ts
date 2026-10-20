@@ -5,7 +5,9 @@ import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
 import { LocatedStation } from '../stations/station.model';
 
+/** The address of a station, the alternatives hold other languages and transcriptions. */
 export interface StationAddress {
+  /** uuid of the station */
   id: string;
   country?: string;
   country_alternatives?: string[];
@@ -24,7 +26,11 @@ interface AddressTupel {
   city?: string;
 }
 
-// the address in german, names in further languages and transcriptions become alternatives
+/**
+ * Reverse geocodes stations with nominatim. The address is in German, names in
+ * the ADDITIONAL_HARVEST_LANGUAGE_LIST languages and transcriptions become
+ * alternatives.
+ */
 @Injectable()
 export class GeocodingService {
   private readonly logger = new Logger(GeocodingService.name);
@@ -43,6 +49,11 @@ export class GeocodingService {
     }
   }
 
+  /**
+   * Requests the address in German and in all additional languages at once.
+   * Errors if the German request fails, failed additional languages are
+   * skipped.
+   */
   getAddress(s: LocatedStation): Observable<StationAddress> {
     const additionalRequests: Record<
       string,
@@ -114,6 +125,7 @@ export class GeocodingService {
     );
   }
 
+  /** Appends the alternative unless it is empty, the value itself or already known. */
   private addAlternative(
     alternatives: string[] | undefined,
     value?: string,
@@ -129,6 +141,7 @@ export class GeocodingService {
     return [...(alternatives ?? []), alternative];
   }
 
+  /** Umlauts and ß written out, so that e.g. "Koeln" also finds Köln. */
   private getTranscriptions(text?: string): string[] | undefined {
     if (text) {
       const transcription = text
@@ -146,6 +159,11 @@ export class GeocodingService {
     return undefined;
   }
 
+  /**
+   * Maps the nominatim address to our levels. Nominatim leaves out levels it
+   * does not know, then the next smaller one fills the gap, e.g. a kreisfreie
+   * Stadt without county becomes its own kreis.
+   */
   private getTupel(data: AddressData): AddressTupel {
     return {
       country: data.country,

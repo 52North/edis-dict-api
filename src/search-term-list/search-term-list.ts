@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import * as xlsx from 'xlsx';
 
+/** A row of the search term list, Übersetzungen and Synonyme are comma separated. */
 interface ListEntry {
   Suchwortkategorie?: string;
   Suchworte?: string;
@@ -10,6 +11,11 @@ interface ListEntry {
   Synonyme?: string;
 }
 
+/**
+ * Synonyms and translations from the search term list (SUCHWORTLISTE_FILE_PATH,
+ * sheet Tabelle1), read once at start. Only the categories "Gewässer / Flüsse",
+ * "Einzugsgebiete" and "Landkreis" are used.
+ */
 @Injectable()
 export class SearchTermListService {
   private searchTermList: ListEntry[];
@@ -24,6 +30,7 @@ export class SearchTermListService {
     this.searchTermList = xlsx.utils.sheet_to_json(sheet);
   }
 
+  /** Synonyms, then translations of the water, undefined if the list has none. */
   getAlternativeGewaesser(gewaesser: string): string[] | undefined {
     const match = this.searchTermList.find((e) => {
       if (e.Suchwortkategorie === 'Gewässer / Flüsse') {
@@ -37,6 +44,10 @@ export class SearchTermListService {
     return this.handleMatch(match);
   }
 
+  /**
+   * Synonyms, then translations of the first list entry containing the name of
+   * the drainage area, undefined if there is none.
+   */
   getAlternativeEinzugsgebiete(einzugsgebiet?: string): string[] | undefined {
     if (!einzugsgebiet) return;
     const match = this.searchTermList.find((e) => {
@@ -52,6 +63,10 @@ export class SearchTermListService {
     return this.handleMatch(match);
   }
 
+  /**
+   * Synonyms, then translations of the kreis, compared without words like
+   * "Landkreis", undefined if the list has none.
+   */
   getAlternativeKreise(kreis?: string): string[] | undefined {
     if (!kreis) return;
     const name = this.removeKreisWords(kreis).toLocaleLowerCase();
@@ -67,6 +82,7 @@ export class SearchTermListService {
     return this.handleMatch(match);
   }
 
+  /** So that e.g. "Landkreis Emsland" from nominatim matches "Emsland" in the list. */
   private removeKreisWords(kreis: string): string {
     return kreis
       .replaceAll('Landkreis', '')

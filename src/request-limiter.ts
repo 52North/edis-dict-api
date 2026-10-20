@@ -2,7 +2,8 @@ import { AxiosInstance } from 'axios';
 
 // lets at most maxRunning requests run at once, further requests wait in the order of their start
 export function limitConcurrentRequests(
-  axios: AxiosInstance,
+  // only the interceptors, so that the ESM typings of axios used by @nestjs/axios fit as well
+  axios: Pick<AxiosInstance, 'interceptors'>,
   maxRunning: number,
 ) {
   // a missing or invalid value would otherwise let every request wait forever

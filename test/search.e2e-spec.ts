@@ -120,4 +120,43 @@ describe('Search API (e2e)', () => {
       items: { $ref: '#/components/schemas/PegelonlineTimeseries' },
     });
   });
+
+  it('describes the fields taken from pegelonline', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
+
+    // with a description, the reference is wrapped in allOf
+    expect(schemas.PegelonlineStation.properties).toMatchObject({
+      water: { allOf: [{ $ref: '#/components/schemas/PegelonlineWater' }] },
+      voiceServiceNumber: { type: 'string' },
+      remark: { type: 'string' },
+    });
+    expect(schemas.PegelonlineTimeseries.properties).toMatchObject({
+      gaugeZero: {
+        allOf: [{ $ref: '#/components/schemas/PegelonlineGaugeZero' }],
+      },
+      comment: {
+        allOf: [{ $ref: '#/components/schemas/PegelonlineComment' }],
+      },
+    });
+    expect(Object.keys(schemas.PegelonlineWater.properties ?? {})).toEqual([
+      'shortname',
+      'longname',
+    ]);
+    expect(Object.keys(schemas.PegelonlineGaugeZero.properties ?? {})).toEqual([
+      'unit',
+      'value',
+      'validFrom',
+    ]);
+    expect(Object.keys(schemas.PegelonlineComment.properties ?? {})).toEqual([
+      'shortDescription',
+      'longDescription',
+    ]);
+  });
 });

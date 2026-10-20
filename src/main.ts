@@ -11,6 +11,15 @@ import {
 
 import { AppModule } from './app.module';
 
+// markdown for the Swagger UI, the ODbL requires the attribution of the OpenStreetMap data
+const DESCRIPTION = [
+  'Durchsucht die Stationen von [Pegelonline](https://www.pegelonline.wsv.de) und ergänzt sie um Adresse, alternative Benennungen und Einzugsgebiet.',
+  '',
+  'Quellen:',
+  '- Stationen und Zeitreihen: Pegelonline der Wasserstraßen- und Schifffahrtsverwaltung des Bundes (WSV), [Datenlizenz Deutschland – Zero – Version 2.0](https://www.govdata.de/dl-de/zero-2-0)',
+  '- Adressen (Land, Bundesland, Kreis, Stadt): © [OpenStreetMap-Mitwirkende](https://www.openstreetmap.org/copyright), [ODbL](https://opendatacommons.org/licenses/odbl/), abgefragt über Nominatim',
+].join('\n');
+
 /**
  * Starts the API on PORT, with the Swagger UI at /api and CORS open for all
  * origins.
@@ -29,7 +38,7 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Dict API für Pegelonline')
-    // .setDescription('TODO: ADD a description')
+    .setDescription(DESCRIPTION)
     // only set when started via npm, like in the Dockerfile
     .setVersion(process.env.npm_package_version ?? 'unknown')
     .build();

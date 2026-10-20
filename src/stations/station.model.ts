@@ -1,5 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/** The gauge zero of a timeseries from the pegelonline REST API v2. */
+export class PegelonlineGaugeZero {
+  @ApiProperty({
+    description: 'Höhenbezug des Pegelnullpunkts (z.B. <code>m. ü. NHN</code>)',
+  })
+  unit: string;
+
+  @ApiProperty({
+    description: 'Höhe des Pegelnullpunkts',
+  })
+  value: number;
+
+  @ApiProperty({
+    description: 'Datum, ab dem der Pegelnullpunkt gilt',
+    format: 'date',
+  })
+  validFrom: string;
+}
+
+/** A disruption or outage of a timeseries from the pegelonline REST API v2. */
+export class PegelonlineComment {
+  @ApiProperty({
+    description: 'Kurzbeschreibung der Störung oder des Ausfalls',
+  })
+  shortDescription: string;
+
+  @ApiProperty({
+    description: 'Ausführliche Beschreibung der Störung oder des Ausfalls',
+  })
+  longDescription: string;
+}
+
 /**
  * A timeseries of a station from the pegelonline REST API v2. mqtttopic and
  * pegelonlinelink are only added for the response, see
@@ -35,6 +67,35 @@ export class PegelonlineTimeseries {
     description: 'Abstand der Messwerte in Minuten',
   })
   equidistance: number;
+
+  @ApiProperty({
+    description:
+      'Pegelnullpunkt aus Pegelonline-API, fehlt bei Zeitreihen ohne Pegelnullpunkt',
+    required: false,
+    type: PegelonlineGaugeZero,
+  })
+  gaugeZero?: PegelonlineGaugeZero;
+
+  @ApiProperty({
+    description:
+      'Störung oder Ausfall der Zeitreihe aus Pegelonline-API, fehlt ohne Störung',
+    required: false,
+    type: PegelonlineComment,
+  })
+  comment?: PegelonlineComment;
+}
+
+/** The water of a station from the pegelonline REST API v2. */
+export class PegelonlineWater {
+  @ApiProperty({
+    description: 'Shortname des Gewässers aus Pegelonline-API',
+  })
+  shortname: string;
+
+  @ApiProperty({
+    description: 'Longname des Gewässers aus Pegelonline-API',
+  })
+  longname: string;
 }
 
 /**
@@ -89,12 +150,24 @@ export class PegelonlineStation {
   latitude?: number;
 
   @ApiProperty({
-    description: 'Water aus Pegelonline-API',
+    description:
+      'Telefonnummer der Pegelansage aus Pegelonline-API im internationalen Format, fehlt bei Stationen ohne Ansage',
+    required: false,
   })
-  water: {
-    shortname: string;
-    longname: string;
-  };
+  voiceServiceNumber?: string;
+
+  @ApiProperty({
+    description:
+      'Hinweis zur Station aus Pegelonline-API (z.B. <code>Abflussermittlung unter W=221cm nicht möglich</code>)',
+    required: false,
+  })
+  remark?: string;
+
+  @ApiProperty({
+    description: 'Water aus Pegelonline-API',
+    type: PegelonlineWater,
+  })
+  water: PegelonlineWater;
 
   @ApiProperty({
     description: 'Alternative Benennungen zu Water',

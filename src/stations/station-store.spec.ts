@@ -37,7 +37,8 @@ describe('StationStore', () => {
       const pellworm = createStation({
         uuid: 'pellworm',
         kreis: 'Nordfriesland',
-        kreis_alternatives: [null, 'NF', ''],
+        // null cannot be typed, but older harvests wrote it
+        kreis_alternatives: [null, 'NF', ''] as string[],
       });
       writeFileSync(stationsFile(), JSON.stringify([pellworm]));
 

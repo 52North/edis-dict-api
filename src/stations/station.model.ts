@@ -169,3 +169,9 @@ export class AggregatedStationResponse {
   })
   stations: PegelonlineStation[];
 }
+
+// only stations with coordinates are harvested
+export type LocatedStation = PegelonlineStation & {
+  latitude: number;
+  longitude: number;
+};

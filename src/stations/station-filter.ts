@@ -49,6 +49,8 @@ const FILTERS: Record<keyof StationQuery, StationFilter> = {
     }
     const [minLon, minLat, maxLon, maxLat] = bbox;
     return (
+      st.longitude !== undefined &&
+      st.latitude !== undefined &&
       st.longitude >= minLon &&
       st.longitude <= maxLon &&
       st.latitude >= minLat &&
@@ -86,10 +88,11 @@ export function searchStations(
   query: StationQuery,
 ): PegelonlineStation[] {
   // the query may contain unknown parameters, which are ignored
-  const keys = (Object.keys(FILTERS) as (keyof StationQuery)[]).filter(
-    (key) => query[key],
+  const filters = (Object.keys(FILTERS) as (keyof StationQuery)[]).flatMap(
+    (key) => {
+      const term = query[key];
+      return term ? [(st: PegelonlineStation) => FILTERS[key](st, term)] : [];
+    },
   );
-  return stations.filter((st) =>
-    keys.every((key) => FILTERS[key](st, query[key])),
-  );
+  return stations.filter((st) => filters.every((filter) => filter(st)));
 }

@@ -110,9 +110,12 @@ describe('Search API (e2e)', () => {
       app,
       new DocumentBuilder().build(),
     );
-    const schemas = document.components.schemas as Record<string, SchemaObject>;
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
 
-    expect(schemas.PegelonlineStation.properties.timeseries).toMatchObject({
+    expect(schemas.PegelonlineStation.properties?.timeseries).toMatchObject({
       type: 'array',
       items: { $ref: '#/components/schemas/PegelonlineTimeseries' },
     });

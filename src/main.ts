@@ -25,7 +25,8 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Dict API für Pegelonline')
     // .setDescription('TODO: ADD a description')
-    .setVersion(process.env.npm_package_version)
+    // only set when started via npm, like in the Dockerfile
+    .setVersion(process.env.npm_package_version ?? 'unknown')
     .build();
   const documentOptions: SwaggerDocumentOptions = {
     operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,

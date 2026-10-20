@@ -17,7 +17,7 @@ type OptionParameter = Exclude<keyof StationQuery, 'q' | 'bbox'>;
 // the values of a search parameter, with the alternative names the search also finds
 const OPTION_VALUES: Record<
   OptionParameter,
-  (station: PegelonlineStation) => string[]
+  (station: PegelonlineStation) => (string | undefined)[]
 > = {
   station: (st) => [st.shortname],
   agency: (st) => [st.agency],
@@ -42,7 +42,7 @@ export class OptionsController {
   constructor(private stationsSrvc: StationsService) {}
 
   @Get()
-  findAll(@Query() query: { parameter: string }) {
+  findAll(@Query() query: { parameter?: string }) {
     if (!query.parameter) {
       throw new HttpException('missing parameter', HttpStatus.BAD_REQUEST);
     }
@@ -52,6 +52,8 @@ export class OptionsController {
     }
     const values = OPTION_VALUES[query.parameter as OptionParameter];
     const all = this.stationsSrvc.getStations().flatMap(values);
-    return Array.from(new Set(all.filter((value) => value))).sort();
+    return Array.from(
+      new Set(all.filter((value): value is string => !!value)),
+    ).sort();
   }
 }

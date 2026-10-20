@@ -3,25 +3,25 @@ import { ConfigService } from '@nestjs/config';
 import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
-import { PegelonlineStation } from '../stations/station.model';
+import { LocatedStation } from '../stations/station.model';
 
 export interface StationAddress {
   id: string;
-  country: string;
+  country?: string;
   country_alternatives?: string[];
-  land: string;
+  land?: string;
   land_alternatives?: string[];
-  kreis: string;
+  kreis?: string;
   kreis_alternatives?: string[];
-  city: string;
+  city?: string;
   city_alternatives?: string[];
 }
 
 interface AddressTupel {
-  country: string;
-  land: string;
-  kreis: string;
-  city: string;
+  country?: string;
+  land?: string;
+  kreis?: string;
+  city?: string;
 }
 
 // the address in german, names in further languages and transcriptions become alternatives
@@ -43,17 +43,13 @@ export class GeocodingService {
     }
   }
 
-  getAddress(s: PegelonlineStation): Observable<StationAddress> {
-    const requests: { [key: string]: Observable<AddressData> } = {
-      de: this.nominatimSrvc.getAdressData(
-        s.uuid,
-        s.latitude,
-        s.longitude,
-        'de',
-      ),
-    };
+  getAddress(s: LocatedStation): Observable<StationAddress> {
+    const additionalRequests: Record<
+      string,
+      Observable<AddressData | undefined>
+    > = {};
     this.harvestLanguageList.forEach((lang) => {
-      requests[lang] = this.nominatimSrvc
+      additionalRequests[lang] = this.nominatimSrvc
         .getAdressData(s.uuid, s.latitude, s.longitude, lang)
         .pipe(
           // a failed additional language only lacks its alternatives, the station is still updated
@@ -63,9 +59,17 @@ export class GeocodingService {
           }),
         );
     });
-    return forkJoin(requests).pipe(
+    return forkJoin({
+      ...additionalRequests,
+      de: this.nominatimSrvc.getAdressData(
+        s.uuid,
+        s.latitude,
+        s.longitude,
+        'de',
+      ),
+    }).pipe(
       map((res) => {
-        const deData = res['de'];
+        const deData = res.de;
         const deTupel = this.getTupel(deData);
         const response: StationAddress = {
           id: deData.id,
@@ -112,7 +116,7 @@ export class GeocodingService {
 
   private addAlternative(
     alternatives: string[] | undefined,
-    value: string,
+    value?: string,
     alternative?: string,
   ): string[] | undefined {
     if (

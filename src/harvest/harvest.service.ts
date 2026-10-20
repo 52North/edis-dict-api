@@ -21,7 +21,7 @@ import {
 
 import { SearchTermListService } from '../search-term-list/search-term-list';
 import { StationStore } from '../stations/station-store';
-import { PegelonlineStation } from '../stations/station.model';
+import { LocatedStation, PegelonlineStation } from '../stations/station.model';
 import { DrainageAreasService } from './drainage-areas.service';
 import { GeocodingService, StationAddress } from './geocoding.service';
 
@@ -119,7 +119,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
   }
 
   private enrichStation(
-    station: PegelonlineStation,
+    station: LocatedStation,
   ): Observable<PegelonlineStation> {
     return this.geocodingSrvc.getAddress(station).pipe(
       catchError((error) => {
@@ -180,18 +180,16 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
   }
 
   // enlarge with data, that does not depend on geocoding
-  private enlargeStation(station: PegelonlineStation) {
+  private enlargeStation(station: LocatedStation) {
     station.water_alternatives =
       this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
-    if (station.latitude && station.longitude) {
-      const drainage = this.drainageAreasSrvc.find(
-        station.latitude,
-        station.longitude,
-      );
-      station.einzugsgebiet = drainage;
-      station.einzugsgebiet_alternatives =
-        this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
-    }
+    const drainage = this.drainageAreasSrvc.find(
+      station.latitude,
+      station.longitude,
+    );
+    station.einzugsgebiet = drainage;
+    station.einzugsgebiet_alternatives =
+      this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
     this.logger.log(`Enlarging data for station ${station.longname}`);
   }
 
@@ -201,12 +199,14 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Finished enlarging ${stations.length} stations`);
   }
 
-  private mergeToArray(entries: string[][]): string[] | undefined {
+  private mergeToArray(
+    entries: (string[] | undefined)[],
+  ): string[] | undefined {
     const list = entries.filter((e) => e !== undefined).flat();
     return list.length ? list : undefined;
   }
 
-  private hasCoordinates(s: PegelonlineStation): boolean {
+  private hasCoordinates(s: PegelonlineStation): s is LocatedStation {
     if (s.latitude && s.longitude) {
       return true;
     }

@@ -56,16 +56,20 @@ const DRAINAGE_AREAS = {
 };
 
 const address = (
-  country: string,
-  state: string,
-  county: string,
-  city: string,
+  country: string | undefined,
+  state: string | undefined,
+  county: string | undefined,
+  city: string | undefined,
 ): AddressData => ({ id: 'id', country, state, county, city });
 
 const NOT_FOUND = address('', '', '', '');
 
 // fresh pegelonline data of the stations in STATIONS
 const fresh = (uuid: string): PegelonlineStation => {
+  const station = STATIONS.find((st) => st.uuid === uuid);
+  if (!station) {
+    throw new Error(`no station ${uuid} in STATIONS`);
+  }
   const {
     shortname,
     longname,
@@ -74,7 +78,7 @@ const fresh = (uuid: string): PegelonlineStation => {
     latitude,
     water,
     timeseries,
-  } = STATIONS.find((st) => st.uuid === uuid);
+  } = station;
   return createStation({
     uuid,
     shortname,
@@ -426,11 +430,11 @@ describe('HarvestService', () => {
 
     it('stops the cron job when the module is destroyed', async () => {
       await service.onModuleInit();
-      expect(service['cronJob'].isActive).toBe(true);
+      expect(service['cronJob']?.isActive).toBe(true);
 
       await service.onModuleDestroy();
 
-      expect(service['cronJob'].isActive).toBe(false);
+      expect(service['cronJob']?.isActive).toBe(false);
     });
   });
 });

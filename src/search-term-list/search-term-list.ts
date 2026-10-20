@@ -42,9 +42,10 @@ export class SearchTermListService {
     const match = this.searchTermList.find((e) => {
       if (e.Suchwortkategorie === 'Einzugsgebiete') {
         return (
-          e.Suchworte?.toLocaleLowerCase().indexOf(
+          !!e.Suchworte &&
+          e.Suchworte.toLocaleLowerCase().includes(
             einzugsgebiet.toLocaleLowerCase(),
-          ) >= 0
+          )
         );
       }
     });
@@ -75,7 +76,7 @@ export class SearchTermListService {
       .trim();
   }
 
-  private handleMatch(match: ListEntry) {
+  private handleMatch(match: ListEntry | undefined): string[] | undefined {
     if (match) {
       const syn = this.getSynonyme(match);
       const trans = this.getTranslations(match);

@@ -5,7 +5,7 @@ import { limitConcurrentRequests } from './request-limiter';
 describe('limitConcurrentRequests', () => {
   let instance: AxiosInstance;
   // requests which reached the adapter, i.e. were sent
-  let sent: { url: string; respond: () => void; fail: () => void }[];
+  let sent: { url?: string; respond: () => void; fail: () => void }[];
 
   const urls = () => sent.map((request) => request.url);
   const request = (url: string) => {

@@ -31,8 +31,8 @@ export class StationsService {
 
   prepareResponse(stations: PegelonlineStation[]): AggregatedStationResponse {
     // TODO: add here some intelligent aggregation of mqtt topics
-    const mqtttopics = [];
-    const pegelonlinelinks = [];
+    const mqtttopics: string[] = [];
+    const pegelonlinelinks: string[] = [];
     const preparedStations = stations.map((st) => {
       const stationTopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/+`;
       mqtttopics.push(stationTopic);

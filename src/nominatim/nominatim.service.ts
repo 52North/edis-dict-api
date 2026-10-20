@@ -7,22 +7,23 @@ import { catchError, map, Observable } from 'rxjs';
 // without timeout, hanging requests block the request limiter in AppModule forever
 const REQUEST_TIMEOUT_MS = 30000;
 
+// nominatim leaves out the parts it does not know, e.g. the county of a city
 export interface AddressData {
   id: string;
-  county: string;
-  state: string;
-  country: string;
-  city: string;
+  county?: string;
+  state?: string;
+  country?: string;
+  city?: string;
 }
 
 interface NominatimReverseResponse {
   error?: string;
   place_id: number;
-  address: {
-    state: string;
-    county: string;
-    city: string;
-    country: string;
+  address?: {
+    state?: string;
+    county?: string;
+    city?: string;
+    country?: string;
   };
 }
 

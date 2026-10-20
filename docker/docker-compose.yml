@@ -1,20 +1,25 @@
-version: "3"
-
 services:
     nominatim:
         container_name: nominatim
-        image: mediagis/nominatim:4.3
+        image: mediagis/nominatim:5.3
         ports:
             - "9090:8080"
         environment:
-            # see https://github.com/mediagis/nominatim-docker/tree/master/4.3#configuration for more options
+            # see https://github.com/mediagis/nominatim-docker/blob/master/howto.md#configuration for more options
             PBF_URL: https://download.geofabrik.de/europe/germany-latest.osm.pbf
-            REPLICATION_URL: https://download.geofabrik.de/europe/germany-updates/
-            NOMINATIM_PASSWORD: very_secure_password
             IMPORT_STYLE: address
-        volumes: 
-            - nominatim-data:/var/lib/postgresql/14/main
+            # the dict-api only uses reverse geocoding
+            REVERSE_ONLY: "true"
+            # no updates, for newer data remove the volume and import again
+            FREEZE: "true"
+            NOMINATIM_PASSWORD: very_secure_password
+            # the image defaults (10GB, 24GB) are meant for a dedicated server
+            POSTGRES_MAINTENANCE_WORK_MEM: 4GB
+            POSTGRES_EFFECTIVE_CACHE_SIZE: 12GB
+        volumes:
+            # the path depends on the postgres version in the image
+            - nominatim5-data:/var/lib/postgresql/16/main
         shm_size: 1gb
 
 volumes:
-    nominatim-data:
+    nominatim5-data:

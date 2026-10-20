@@ -30,6 +30,25 @@ $ npm run build
 $ npm run start:prod
 ```
 
+## Nominatim
+
+The harvest gets the address of each station (country, state, county, city) by reverse geocoding with Nominatim (`NOMINATIM_BASE_URL`). `docker/docker-compose.yml` runs a local instance with the OpenStreetMap extract of Germany on port 9090, which matches `.env.example`:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml logs -f
+```
+
+The first start imports the extract, which takes several hours. The instance is ready when the log shows `Nominatim is ready to accept requests`. It only answers reverse requests and gets no updates. For newer data, remove the container and its volume with `docker compose -f docker/docker-compose.yml down -v` and start again.
+
+If geocoding fails for a station, the harvest keeps its previous address. To check the addresses after a harvest, copy `stations.json` beforehand and compare:
+
+```bash
+cp stations.json stations.before.json
+# run a harvest, e.g. start the app with RUN_DATA_ENLARGING_ON_INIT=true
+npm run compare-stations -- stations.before.json stations.json
+```
+
 ## Test
 
 ```bash

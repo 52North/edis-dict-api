@@ -20,7 +20,8 @@
     "test:debug": "node --experimental-vm-modules --inspect-brk -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "node --experimental-vm-modules node_modules/.bin/jest --config ./test/jest-e2e.json",
     "bundle-rpm": "ts-node scripts/bundle-rpm.ts",
-    "versions-script": "node scripts/git.version.js"
+    "versions-script": "node scripts/git.version.js",
+    "compare-stations": "node scripts/compare-stations.js"
   },
   "dependencies": {
     "@nestjs/axios": "^12.0.1",

@@ -322,36 +322,42 @@ describe('HarvestService', () => {
     expect(storedStations().map((st) => st.uuid)).toEqual(['koeln']);
   });
 
-  it('skips stations without coordinates', () => {
-    const withoutCoordinates = createStation({
-      uuid: 'nowhere',
-      latitude: undefined,
-      longitude: undefined,
-    });
+  it('stores stations without coordinates without address and drainage area', () => {
+    searchTermListService.getAlternativeGewaesser.mockReturnValue(['EHK']);
 
-    harvest([fresh('koeln'), withoutCoordinates], () => of(NOT_FOUND));
+    harvest([fresh('koeln'), fresh('rossdorf')], () => of(NOT_FOUND));
 
-    expect(storedStations().map((st) => st.uuid)).toEqual(['koeln']);
-    expect(nominatimService.getAdressData).not.toHaveBeenCalledWith(
-      'nowhere',
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-    );
+    expect(storedStations()).toEqual([
+      expect.objectContaining({ uuid: 'koeln', einzugsgebiet: 'Rhein' }),
+      expect.objectContaining({
+        uuid: 'rossdorf',
+        water_alternatives: ['EHK'],
+      }),
+    ]);
+    expect(storedStations()[1].einzugsgebiet).toBeUndefined();
+    expect(
+      nominatimService.getAdressData.mock.calls.map(([uuid]) => uuid),
+    ).not.toContain('rossdorf');
   });
 
   it('finishes the harvest if enriching a station fails', () => {
     searchTermListService.getAlternativeGewaesser.mockImplementation(
       (water: string) => {
-        if (water === 'RHEIN') {
+        if (water === 'RHEIN' || water === 'ELBE-HAVEL-KANAL') {
           throw new Error('broken');
         }
       },
     );
 
-    harvest([fresh('koeln'), fresh('herbrum')], () => of(NOT_FOUND));
+    harvest([fresh('koeln'), fresh('herbrum'), fresh('rossdorf')], () =>
+      of(NOT_FOUND),
+    );
 
-    expect(storedStations().map((st) => st.uuid)).toEqual(['koeln', 'herbrum']);
+    expect(storedStations().map((st) => st.uuid)).toEqual([
+      'koeln',
+      'herbrum',
+      'rossdorf',
+    ]);
     service['fetchStations']();
     expect(httpService.get).toHaveBeenCalledTimes(2);
   });

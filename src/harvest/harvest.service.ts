@@ -31,8 +31,9 @@ const PEGELONLINE_TIMEOUT_MS = 60000;
 /**
  * Fetches the stations from pegelonline and enriches them with address,
  * synonyms and drainage area. Runs on CRON_TIME_FOR_DATA_ENLARGING and, with
- * RUN_DATA_ENLARGING_ON_INIT, on start. Stations without coordinates are left
- * out, the enriched stations replace the stored ones at the end.
+ * RUN_DATA_ENLARGING_ON_INIT, on start. Stations without coordinates get
+ * neither address nor drainage area, the enriched stations replace the stored
+ * ones at the end.
  */
 @Injectable()
 export class HarvestService implements OnModuleInit, OnModuleDestroy {
@@ -113,7 +114,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     this.httpService
       .get<PegelonlineStation[]>(url, config)
       .pipe(
-        map((res) => res.data.filter((st) => this.hasCoordinates(st))),
+        map((res) => res.data),
         mergeMap((stations) => {
           // rather a fault of pegelonline than the end of all stations
           if (!stations.length) {
@@ -135,12 +136,41 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Adds address, synonyms and drainage area to the station. If geocoding
-   * fails, the station keeps the address of the previous harvest.
+   * Adds the synonyms of the water to the station and, if it has coordinates,
+   * address and drainage area.
    */
   private enrichStation(
-    station: LocatedStation,
+    station: PegelonlineStation,
   ): Observable<PegelonlineStation> {
+    // without coordinates, the search still finds the station by name, water and parameter
+    const located = this.hasCoordinates(station)
+      ? this.locateStation(station)
+      : of(station);
+    return located.pipe(
+      map(() => {
+        station.water_alternatives =
+          this.searchTermListSrvc.getAlternativeGewaesser(
+            station.water.longname,
+          );
+        this.logger.log(`Enlarging data for station ${station.longname}`);
+        return station;
+      }),
+      // a single broken station must not stop the whole harvest
+      catchError((error) => {
+        this.logger.error(
+          `Error occurred while enriching station ${station.longname}`,
+        );
+        this.logger.error(error.stack);
+        return of(station);
+      }),
+    );
+  }
+
+  /**
+   * Adds address and drainage area, both need the coordinates. If geocoding
+   * fails, the station keeps the address of the previous harvest.
+   */
+  private locateStation(station: LocatedStation): Observable<LocatedStation> {
     return this.geocodingSrvc.getAddress(station).pipe(
       catchError((error) => {
         this.logger.error(
@@ -165,16 +195,14 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
           );
           this.keepPreviousAddress(station);
         }
-        this.enlargeStation(station);
-        return station;
-      }),
-      // a single broken station must not stop the whole harvest
-      catchError((error) => {
-        this.logger.error(
-          `Error occurred while enriching station ${station.longname}`,
+        const drainage = this.drainageAreasSrvc.find(
+          station.latitude,
+          station.longitude,
         );
-        this.logger.error(error.stack);
-        return of(station);
+        station.einzugsgebiet = drainage;
+        station.einzugsgebiet_alternatives =
+          this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
+        return station;
       }),
     );
   }
@@ -200,20 +228,6 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Adds the data that does not depend on geocoding: water synonyms and drainage area. */
-  private enlargeStation(station: LocatedStation) {
-    station.water_alternatives =
-      this.searchTermListSrvc.getAlternativeGewaesser(station.water.longname);
-    const drainage = this.drainageAreasSrvc.find(
-      station.latitude,
-      station.longitude,
-    );
-    station.einzugsgebiet = drainage;
-    station.einzugsgebiet_alternatives =
-      this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
-    this.logger.log(`Enlarging data for station ${station.longname}`);
-  }
-
   /** Searches see the previous stations until the whole harvest is done. */
   private finishHarvest(stations: PegelonlineStation[]) {
     this.stationStore.replace(stations);
@@ -237,7 +251,9 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     if (s.latitude && s.longitude) {
       return true;
     }
-    this.logger.warn(`${s.shortname} has no coordinates`);
+    this.logger.warn(
+      `${s.shortname} has no coordinates, storing it without address and drainage area`,
+    );
     return false;
   }
 }

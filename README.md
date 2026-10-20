@@ -32,7 +32,7 @@ $ npm run start:prod
 
 ## Nominatim
 
-The harvest gets the address of each station (country, state, county, city) by reverse geocoding with Nominatim (`NOMINATIM_BASE_URL`). `docker/docker-compose.yml` runs a local instance with the OpenStreetMap extract of Germany on port 9090, which matches `.env.example`:
+The harvest gets the address of each station with coordinates (country, state, county, city) by reverse geocoding with Nominatim (`NOMINATIM_BASE_URL`). `docker/docker-compose.yml` runs a local instance with the OpenStreetMap extract of Germany on port 9090, which matches `.env.example`:
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d

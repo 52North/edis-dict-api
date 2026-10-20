@@ -12,6 +12,8 @@ Aufruf der Swagger-UI zur Dict API
 
 Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter werden diese durch eine UND-Verknüpfung kombiniert. Jeder Parameter darf nur einmal angegeben werden, ungültige Angaben beantwortet die API mit HTTP 400. Unbekannte Parameter werden ignoriert.
 
+Für einige Stationen liefert Pegelonline keine Koordinaten. Sie haben dann weder `latitude`/`longitude` noch Adresse und Einzugsgebiet, deshalb finden `land`, `kreis`, `country`, `einzugsgebiet` und `bbox` sie nicht.
+
 ### station
 
 Suche per String matching nach Stationen mit dem angegebenen Namen

@@ -25,8 +25,13 @@ describe('StationsService', () => {
     service.getStations(query).map((st) => st.uuid);
 
   it.each<[string, StationQuery, string[]]>([
-    ['no parameter', {}, ['koeln', 'herbrum', 'genthin', 'dresden']],
+    [
+      'no parameter',
+      {},
+      ['koeln', 'herbrum', 'genthin', 'dresden', 'rossdorf'],
+    ],
     ['station', { station: 'köln' }, ['koeln']],
+    ['station without coordinates', { station: 'roßdorf' }, ['rossdorf']],
     ['number', { number: '2730010' }, ['koeln']],
     ['number by part of the number', { number: '2730' }, []],
     ['gewaesser by short name', { gewaesser: 'rhein' }, ['koeln']],
@@ -42,6 +47,11 @@ describe('StationsService', () => {
       { gewaesser: 'Elbe' },
       ['dresden'],
     ],
+    [
+      'gewaesser including stations without coordinates',
+      { gewaesser: 'elbe-havel-kanal' },
+      ['genthin', 'rossdorf'],
+    ],
     ['land', { land: 'sachsen' }, ['herbrum', 'genthin', 'dresden']],
     ['kreis by alternative', { kreis: 'koeln' }, ['koeln']],
     ['country by alternative', { country: 'germany' }, ['koeln']],
@@ -55,10 +65,19 @@ describe('StationsService', () => {
     ],
     ['parameter by part of the name', { parameter: 'wasser' }, []],
     ['bbox', { bbox: '6,50,8,54' }, ['koeln', 'herbrum']],
+    [
+      'bbox without stations lacking coordinates',
+      { gewaesser: 'elbe-havel-kanal', bbox: '12,52,13,53' },
+      ['genthin'],
+    ],
     ['q', { q: 'rhein' }, ['koeln']],
     ['q in timeseries', { q: 'wassertemperatur' }, ['koeln', 'dresden']],
     ['q in alternatives', { q: 'germany' }, ['koeln']],
-    ['q in the long name of the water', { q: 'havel' }, ['genthin']],
+    [
+      'q in the long name of the water',
+      { q: 'havel' },
+      ['genthin', 'rossdorf'],
+    ],
     ['q in kreis', { q: 'emsland' }, ['herbrum']],
     ['q in number', { q: '2730010' }, ['koeln']],
     ['q in part of the number', { q: '5010' }, ['dresden']],

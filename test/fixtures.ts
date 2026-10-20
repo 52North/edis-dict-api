@@ -93,4 +93,15 @@ export const STATIONS: PegelonlineStation[] = [
     kreis: 'Dresden',
     timeseries: [WATER_LEVEL, WATER_TEMPERATURE],
   }),
+  // pegelonline has no coordinates for it, so it has neither address nor drainage area
+  createStation({
+    uuid: 'rossdorf',
+    number: '587717',
+    shortname: 'Roßdorf',
+    longname: 'ROSSDORF',
+    agency: 'STANDORT BRANDENBURG',
+    longitude: undefined,
+    latitude: undefined,
+    water: { shortname: 'EHK', longname: 'ELBE-HAVEL-KANAL' },
+  }),
 ];

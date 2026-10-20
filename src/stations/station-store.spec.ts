@@ -73,6 +73,7 @@ describe('StationStore', () => {
         'herbrum',
         'genthin',
         'dresden',
+        'rossdorf',
       ]);
       expect(existsSync(`${stationsFile()}.tmp`)).toBe(false);
     });

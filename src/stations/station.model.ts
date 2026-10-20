@@ -75,13 +75,15 @@ export class PegelonlineStation {
   agency: string;
 
   @ApiProperty({
-    description: 'Longitude aus Pegelonline-API',
+    description:
+      'Longitude aus Pegelonline-API, fehlt bei Stationen ohne Koordinaten',
     required: false,
   })
   longitude?: number;
 
   @ApiProperty({
-    description: 'Latitude aus Pegelonline-API',
+    description:
+      'Latitude aus Pegelonline-API, fehlt bei Stationen ohne Koordinaten',
     required: false,
   })
   latitude?: number;
@@ -192,7 +194,7 @@ export class AggregatedStationResponse {
   stations: PegelonlineStation[];
 }
 
-/** Only stations with coordinates are harvested. */
+/** Only stations with coordinates are geocoded and get a drainage area. */
 export type LocatedStation = PegelonlineStation & {
   latitude: number;
   longitude: number;

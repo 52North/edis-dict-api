@@ -20,6 +20,11 @@ function address(st) {
   return FIELDS.map((field) => st[field] ?? '-').join(' / ');
 }
 
+// the harvest geocodes only stations with coordinates
+function hasCoordinates(st) {
+  return !!(st.latitude && st.longitude);
+}
+
 function show(value) {
   return value === undefined ? '-' : `'${value}'`;
 }
@@ -63,7 +68,10 @@ const changed = afterStations
   .filter((st) => before.has(st.uuid))
   .map((st) => ({ st, lines: changes(before.get(st.uuid), st) }))
   .filter(({ lines }) => lines.length);
-const withoutAddress = afterStations.filter((st) => !st.country);
+const withoutCoordinates = afterStations.filter((st) => !hasCoordinates(st));
+const withoutAddress = afterStations.filter(
+  (st) => hasCoordinates(st) && !st.country,
+);
 
 console.log(
   `${before.size} stations in ${beforePath}, ${after.size} in ${afterPath}`,
@@ -83,6 +91,10 @@ printSection(
 printSection(
   `without address in ${afterPath} (${withoutAddress.length})`,
   withoutAddress.map(label),
+);
+printSection(
+  `without coordinates in ${afterPath} (${withoutCoordinates.length})`,
+  withoutCoordinates.map(label),
 );
 console.log(
   `\n${after.size - added.length - changed.length} stations unchanged`,

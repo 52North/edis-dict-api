@@ -1,5 +1,10 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AxiosRequestConfig } from 'axios';
 import { CronJob } from 'cron';
@@ -25,7 +30,7 @@ const PEGELONLINE_TIMEOUT_MS = 60000;
 
 // fetches the stations from pegelonline and enriches them with address, synonyms and drainage area
 @Injectable()
-export class HarvestService {
+export class HarvestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(HarvestService.name);
 
   private readonly pegelonlineBaseUrl = this.configService.get<string>(
@@ -47,6 +52,8 @@ export class HarvestService {
 
   private harvestRunning = false;
 
+  private cronJob?: CronJob;
+
   constructor(
     private readonly httpService: HttpService,
     private readonly geocodingSrvc: GeocodingService,
@@ -54,20 +61,21 @@ export class HarvestService {
     private readonly searchTermListSrvc: SearchTermListService,
     private readonly stationStore: StationStore,
     private readonly configService: ConfigService,
-  ) {
-    this.stationStore.load().then(() => {
-      new CronJob(
-        this.cronTimeForDataEnlarging,
-        () => {
-          this.fetchStations();
-        },
-        null,
-        true,
-        null,
-        null,
-        this.runDataEnlargingOnInit,
-      );
+  ) {}
+
+  // load first, so searches find the stations right after the start and the first harvest can keep their addresses
+  async onModuleInit() {
+    await this.stationStore.load();
+    this.cronJob = CronJob.from({
+      cronTime: this.cronTimeForDataEnlarging,
+      onTick: () => this.fetchStations(),
+      start: true,
+      runOnInit: this.runDataEnlargingOnInit,
     });
+  }
+
+  onModuleDestroy() {
+    return this.cronJob?.stop();
   }
 
   private fetchStations() {

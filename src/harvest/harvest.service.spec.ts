@@ -22,9 +22,6 @@ import { DrainageAreasService } from './drainage-areas.service';
 import { GeocodingService } from './geocoding.service';
 import { HarvestService } from './harvest.service';
 
-// the cron job of the service would keep jest running
-jest.mock('cron');
-
 const square = (
   minLon: number,
   minLat: number,
@@ -105,13 +102,14 @@ describe('HarvestService', () => {
   const stationsFile = () => join(dir, 'stations.json');
 
   // geocoding, drainage areas and store are real, only the external sources are mocked
-  const createService = () => {
+  const createService = (overrides: Record<string, string> = {}) => {
     const config: Record<string, string> = {
       STATIONS_FILE_PATH: stationsFile(),
       EINZUGSGEBIETE_FILE_PATH: join(dir, 'einzugsgebiete.geojson'),
       PEGELONLINE_BASE_URL: 'http://pegelonline',
       ADDITIONAL_HARVEST_LANGUAGE_LIST: 'en,fr',
       RUN_DATA_ENLARGING_ON_INIT: 'false',
+      ...overrides,
     };
     const configService = {
       get: (key: string, defaultValue?: string) => config[key] ?? defaultValue,
@@ -394,6 +392,42 @@ describe('HarvestService', () => {
       'herbrum',
     ]);
     expect(existsSync(`${stationsFile()}.tmp`)).toBe(false);
+  });
+
+  describe('lifecycle', () => {
+    afterEach(() => service.onModuleDestroy());
+
+    it('loads the stored stations before the first harvest', async () => {
+      writeFileSync(stationsFile(), JSON.stringify(STATIONS.slice(0, 1)));
+      createService({ RUN_DATA_ENLARGING_ON_INIT: 'true' });
+      httpService.get.mockReturnValue(
+        of({
+          data: [{ ...fresh('koeln'), longname: 'KÖLN NEU' }],
+        } as AxiosResponse),
+      );
+      nominatimService.getAdressData.mockReturnValue(of(NOT_FOUND));
+
+      await service.onModuleInit();
+      await waitFor(() => storedStations()[0]?.longname === 'KÖLN NEU');
+
+      // the failed geocoding keeps the address from stations.json
+      expect(storedStations()[0].country).toBe('Deutschland');
+    });
+
+    it('starts no harvest on init if disabled', async () => {
+      await service.onModuleInit();
+
+      expect(httpService.get).not.toHaveBeenCalled();
+    });
+
+    it('stops the cron job when the module is destroyed', async () => {
+      await service.onModuleInit();
+      expect(service['cronJob'].isActive).toBe(true);
+
+      await service.onModuleDestroy();
+
+      expect(service['cronJob'].isActive).toBe(false);
+    });
   });
 });
 

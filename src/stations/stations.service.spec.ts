@@ -15,12 +15,10 @@ import { firstValueFrom, Observable, of, Subject, throwError } from 'rxjs';
 
 import { createStation, STATIONS } from '../../test/fixtures';
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
+import { StationQuery } from '../query/station-query';
 import { SearchTermListService } from '../search-term-list/search-term-list';
-import {
-  PegelonlineStation,
-  StationQuery,
-  StationsService,
-} from './stations.service';
+import { PegelonlineStation } from './station.model';
+import { StationsService } from './stations.service';
 
 // the cron job of the service would keep jest running
 jest.mock('cron');

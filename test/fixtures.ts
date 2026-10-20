@@ -1,7 +1,7 @@
 import {
   PegelonlineStation,
   PegelonlineTimeseries,
-} from '../src/stations/stations.service';
+} from '../src/stations/station.model';
 
 export const WATER_LEVEL = {
   shortname: 'W',

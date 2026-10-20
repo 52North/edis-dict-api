@@ -2,10 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { firstValueFrom, of } from 'rxjs';
 
 import { STATIONS } from '../../test/fixtures';
-import {
-  AggregatedStationResponse,
-  StationsService,
-} from '../stations/stations.service';
+import { AggregatedStationResponse } from '../stations/station.model';
+import { StationsService } from '../stations/stations.service';
 import { QueryController } from './query.controller';
 
 describe('QueryController', () => {

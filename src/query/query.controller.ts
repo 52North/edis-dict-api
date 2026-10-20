@@ -2,11 +2,9 @@ import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { map, Observable } from 'rxjs';
 
-import {
-  AggregatedStationResponse,
-  StationQuery,
-  StationsService,
-} from '../stations/stations.service';
+import { AggregatedStationResponse } from '../stations/station.model';
+import { StationsService } from '../stations/stations.service';
+import { StationQuery } from './station-query';
 import { StationQueryPipe } from './station-query.pipe';
 
 @Controller('search')

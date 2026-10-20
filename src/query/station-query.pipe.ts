@@ -5,7 +5,7 @@ import {
   PipeTransform,
 } from '@nestjs/common';
 
-import { parseBbox, StationQuery } from '../stations/stations.service';
+import { parseBbox, StationQuery } from './station-query';
 
 // a record, so the compiler reports parameters added to StationQuery but missing here
 const PARAMETERS: Record<keyof StationQuery, true> = {

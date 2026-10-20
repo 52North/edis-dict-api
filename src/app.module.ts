@@ -2,10 +2,14 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+import { DrainageAreasService } from './harvest/drainage-areas.service';
+import { GeocodingService } from './harvest/geocoding.service';
+import { HarvestService } from './harvest/harvest.service';
 import { NominatimService } from './nominatim/nominatim.service';
 import { OptionsController } from './options/options.controller';
 import { QueryController } from './query/query.controller';
 import { SearchTermListService } from './search-term-list/search-term-list';
+import { StationStore } from './stations/station-store';
 import { StationsService } from './stations/stations.service';
 
 const INTERVAL_MS = 100;
@@ -17,7 +21,15 @@ const INTERVAL_MS = 100;
     ConfigModule.forRoot(),
   ],
   controllers: [QueryController, OptionsController],
-  providers: [StationsService, NominatimService, SearchTermListService],
+  providers: [
+    StationsService,
+    StationStore,
+    HarvestService,
+    GeocodingService,
+    DrainageAreasService,
+    NominatimService,
+    SearchTermListService,
+  ],
 })
 export class AppModule {
   private pendingRequests = 0;

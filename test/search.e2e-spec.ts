@@ -1,19 +1,14 @@
-import { HttpService } from '@nestjs/axios';
 import { INestApplication, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SchemaObject, SwaggerModule } from '@nestjs/swagger';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
-import { NominatimService } from '../src/nominatim/nominatim.service';
 import { OptionsController } from '../src/options/options.controller';
 import { QueryController } from '../src/query/query.controller';
-import { SearchTermListService } from '../src/search-term-list/search-term-list';
+import { StationStore } from '../src/stations/station-store';
 import { StationsService } from '../src/stations/stations.service';
 import { STATIONS } from './fixtures';
-
-// the cron job of the service would keep jest running
-jest.mock('cron');
 
 describe('Search API (e2e)', () => {
   let app: INestApplication;
@@ -21,17 +16,13 @@ describe('Search API (e2e)', () => {
   beforeAll(async () => {
     Logger.overrideLogger(false);
     const config: Record<string, string> = {
-      STATIONS_FILE_PATH: 'does-not-exist.json',
       PEGELONLINE_BASE_URL: 'http://pegelonline',
-      RUN_DATA_ENLARGING_ON_INIT: 'false',
     };
     const module = await Test.createTestingModule({
       controllers: [QueryController, OptionsController],
       providers: [
         StationsService,
-        { provide: HttpService, useValue: {} },
-        { provide: NominatimService, useValue: {} },
-        { provide: SearchTermListService, useValue: {} },
+        StationStore,
         {
           provide: ConfigService,
           useValue: {
@@ -44,7 +35,7 @@ describe('Search API (e2e)', () => {
 
     app = module.createNestApplication();
     await app.init();
-    app.get(StationsService)['stations'] = structuredClone(STATIONS);
+    app.get(StationStore)['stations'] = structuredClone(STATIONS);
   });
 
   afterAll(() => app.close());

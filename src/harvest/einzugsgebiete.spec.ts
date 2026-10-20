@@ -1,6 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+import { WATER_DRAINAGE_AREAS } from './drainage-areas.service';
+
 // checks the drainage areas of the repository, e.g. after replacing the file
 describe('einzugsgebiete.geojson', () => {
   let names: string[];
@@ -26,6 +28,12 @@ describe('einzugsgebiete.geojson', () => {
   it('has names with umlauts', () => {
     expect(names).toEqual(
       expect.arrayContaining(['Wümme', 'Weiße Elster', 'Sûre Rivière']),
+    );
+  });
+
+  it('has the drainage areas assigned to waters', () => {
+    expect(names).toEqual(
+      expect.arrayContaining(Object.values(WATER_DRAINAGE_AREAS)),
     );
   });
 });

@@ -52,6 +52,11 @@ const DRAINAGE_AREAS = {
       properties: { NAME_2500: null, NAME_1000: 'Ems' },
       geometry: { type: 'MultiPolygon', coordinates: square(7, 52.5, 8, 53.5) },
     },
+    {
+      type: 'Feature',
+      properties: { NAME_2500: null, NAME_1000: null, NAME_500: null },
+      geometry: { type: 'MultiPolygon', coordinates: square(8, 50, 9, 51) },
+    },
   ],
 };
 
@@ -90,6 +95,14 @@ const fresh = (uuid: string): PegelonlineStation => {
     timeseries,
   });
 };
+
+// fresh pegelonline data of a station at the given place
+const located = (longitude: number, latitude: number, water = 'WATER') =>
+  createStation({
+    longitude,
+    latitude,
+    water: { shortname: water, longname: water },
+  });
 
 describe('HarvestService', () => {
   let dir: string;
@@ -206,15 +219,32 @@ describe('HarvestService', () => {
     );
   });
 
-  it.each([
+  it.each<[string, PegelonlineStation, string | undefined]>([
     [
       'in the smaller drainage area if the larger has no name',
-      'herbrum',
+      fresh('herbrum'),
       'Ems',
     ],
-    ['outside of all drainage areas', 'dresden', undefined],
-  ])('finds the drainage area %s', (_, uuid, expected) => {
-    harvest([fresh(uuid)], () => of(NOT_FOUND));
+    ['nearby if the station is just outside', located(8.003, 51.5), 'Rhein'],
+    [
+      'nearby if the station is in an unnamed one',
+      located(8.003, 50.5),
+      'Rhein',
+    ],
+    [
+      'of the water far outside of all drainage areas',
+      located(4, 52, 'WAAL'),
+      'Rhein',
+    ],
+    [
+      'of the water in an unnamed drainage area',
+      located(8.5, 50.5, 'NORDSEE'),
+      'Nordsee',
+    ],
+    ['nearby only up to 500 m', located(8.01, 51.5), undefined],
+    ['outside of all drainage areas', fresh('dresden'), undefined],
+  ])('finds the drainage area %s', (_, station, expected) => {
+    harvest([station], () => of(NOT_FOUND));
 
     expect(storedStations()[0].einzugsgebiet).toBe(expected);
   });

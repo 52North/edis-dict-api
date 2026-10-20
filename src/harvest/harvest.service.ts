@@ -195,10 +195,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
           );
           this.keepPreviousAddress(station);
         }
-        const drainage = this.drainageAreasSrvc.find(
-          station.latitude,
-          station.longitude,
-        );
+        const drainage = this.drainageAreasSrvc.find(station);
         station.einzugsgebiet = drainage;
         station.einzugsgebiet_alternatives =
           this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);

@@ -23,9 +23,16 @@ describe('OptionsController', () => {
   });
 
   it.each([
+    ['station', ['DRESDEN', 'GENTHIN', 'HERBRUM', 'KÖLN']],
+    ['agency', ['DRESDEN', 'MAGDEBURG', 'MEPPEN', 'RHEIN']],
     ['gewaesser', ['DEK', 'EHK', 'ELBE', 'Elb', 'RHEIN', 'Rhine']],
     ['kreis', ['Dresden', 'Koeln', 'Köln', 'Landkreis Emsland']],
+    [
+      'land',
+      ['Niedersachsen', 'Nordrhein-Westfalen', 'Sachsen', 'Sachsen-Anhalt'],
+    ],
     ['country', ['Deutschland', 'Germany']],
+    ['einzugsgebiet', ['Rhein']],
     ['parameter', ['W', 'WASSERSTAND ROHDATEN', 'WASSERTEMPERATUR', 'WT']],
   ])(
     'lists the sorted values and alternatives for %s',
@@ -40,9 +47,12 @@ describe('OptionsController', () => {
     );
   });
 
-  it('rejects an unsupported parameter', () => {
-    expect(() => options('unknown')).toThrow(
-      new HttpException('unsupported parameter', HttpStatus.BAD_REQUEST),
-    );
-  });
+  it.each(['unknown', 'q', 'constructor'])(
+    'rejects the unsupported parameter %s',
+    (parameter) => {
+      expect(() => options(parameter)).toThrow(
+        new HttpException('unsupported parameter', HttpStatus.BAD_REQUEST),
+      );
+    },
+  );
 });

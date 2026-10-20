@@ -13,6 +13,11 @@ export const WATER_TEMPERATURE = {
   longname: 'WASSERTEMPERATUR',
 } as PegelonlineTimeseries;
 
+export const FLOW_VELOCITY = {
+  shortname: 'VA',
+  longname: 'FLIESSGESCHWINDIGKEIT_ROHDATEN',
+} as PegelonlineTimeseries;
+
 // station as delivered by pegelonline, without enrichment
 export function createStation(
   station: Partial<PegelonlineStation>,
@@ -67,6 +72,7 @@ export const STATIONS: PegelonlineStation[] = [
     country: 'Deutschland',
     land: 'Niedersachsen',
     kreis: 'Landkreis Emsland',
+    timeseries: [WATER_LEVEL, FLOW_VELOCITY],
   }),
   createStation({
     uuid: 'genthin',

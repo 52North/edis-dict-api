@@ -16,6 +16,18 @@ function equalsIgnoringCase(value: string | undefined, term: string): boolean {
   return !!value && value.toLowerCase() === term.toLowerCase();
 }
 
+/**
+ * The long name of a timeseries with spaces instead of underscores and without
+ * a final ROHDATEN, e.g. ABFLUSS for ABFLUSS_ROHDATEN. Pegelonline adds it to
+ * most long names, but not to all of the same parameter.
+ */
+export function parameterName(longname: string): string {
+  return longname
+    .replaceAll('_', ' ')
+    .trim()
+    .replace(/\s+ROHDATEN$/i, '');
+}
+
 // a record, so the compiler reports parameters added to StationQuery but missing here
 // TODO: add region filter
 const FILTERS: Record<keyof StationQuery, StationFilter> = {
@@ -37,10 +49,13 @@ const FILTERS: Record<keyof StationQuery, StationFilter> = {
     matchesAny(st.einzugsgebiet_alternatives, term),
   kreis: (st, term) =>
     matches(st.kreis, term) || matchesAny(st.kreis_alternatives, term),
+  // whole names, a substring match would let "W" also find WT, WG or WR
   parameter: (st, term) =>
     st.timeseries.some(
       (ts) =>
-        equalsIgnoringCase(ts.longname, term) ||
+        // upper case turns ß into SS, so "Fließgeschwindigkeit" finds FLIESSGESCHWINDIGKEIT
+        parameterName(ts.longname).toUpperCase() ===
+          parameterName(term).toUpperCase() ||
         equalsIgnoringCase(ts.shortname, term),
     ),
   bbox: (st, term) => {
@@ -74,7 +89,11 @@ const FILTERS: Record<keyof StationQuery, StationFilter> = {
       st.kreis,
       st.city,
       st.einzugsgebiet,
-      ...st.timeseries.flatMap((ts) => [ts.shortname, ts.longname]),
+      // with spaces, so "elektrische leitfähigkeit" finds ELEKTRISCHE_LEITFÄHIGKEIT_ROHDATEN
+      ...st.timeseries.flatMap((ts) => [
+        ts.shortname,
+        ts.longname.replaceAll('_', ' '),
+      ]),
     ].some((value) => matches(value, term)) ||
     [
       st.water_alternatives,

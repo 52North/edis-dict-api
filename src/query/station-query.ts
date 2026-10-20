@@ -54,7 +54,7 @@ export class StationQuery {
   @ApiProperty({
     required: false,
     description:
-      'Suche über einen Beobachtungsparameter (z.B. <code>Wassertemperatur</code>)',
+      'Suche über einen Beobachtungsparameter, als Kürzel oder ganzer Name (z.B. <code>WT</code> oder <code>Wassertemperatur</code>)',
   })
   parameter?: string;
   @ApiProperty({

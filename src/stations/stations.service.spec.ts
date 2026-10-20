@@ -64,6 +64,23 @@ describe('StationsService', () => {
       ['koeln', 'dresden'],
     ],
     ['parameter by part of the name', { parameter: 'wasser' }, []],
+    [
+      'parameter by long name without ROHDATEN',
+      { parameter: 'fliessgeschwindigkeit' },
+      ['herbrum'],
+    ],
+    [
+      'parameter by whole long name',
+      { parameter: 'FLIESSGESCHWINDIGKEIT_ROHDATEN' },
+      ['herbrum'],
+    ],
+    [
+      'parameter with space instead of underscore',
+      { parameter: 'Fliessgeschwindigkeit Rohdaten' },
+      ['herbrum'],
+    ],
+    ['parameter with ß', { parameter: 'Fließgeschwindigkeit' }, ['herbrum']],
+    ['parameter by ROHDATEN only', { parameter: 'rohdaten' }, []],
     ['bbox', { bbox: '6,50,8,54' }, ['koeln', 'herbrum']],
     [
       'bbox without stations lacking coordinates',
@@ -72,6 +89,11 @@ describe('StationsService', () => {
     ],
     ['q', { q: 'rhein' }, ['koeln']],
     ['q in timeseries', { q: 'wassertemperatur' }, ['koeln', 'dresden']],
+    [
+      'q in a long name with underscores',
+      { q: 'fliessgeschwindigkeit rohdaten' },
+      ['herbrum'],
+    ],
     ['q in alternatives', { q: 'germany' }, ['koeln']],
     [
       'q in the long name of the water',

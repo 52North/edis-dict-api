@@ -37,7 +37,17 @@ describe('OptionsController', () => {
     ],
     ['country', ['Deutschland', 'Germany']],
     ['einzugsgebiet', ['Rhein']],
-    ['parameter', ['W', 'WASSERSTAND ROHDATEN', 'WASSERTEMPERATUR', 'WT']],
+    [
+      'parameter',
+      [
+        'FLIESSGESCHWINDIGKEIT',
+        'VA',
+        'W',
+        'WASSERSTAND',
+        'WASSERTEMPERATUR',
+        'WT',
+      ],
+    ],
   ])(
     'lists the sorted values and alternatives for %s',
     (parameter, expected) => {

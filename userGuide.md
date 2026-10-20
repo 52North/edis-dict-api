@@ -56,7 +56,7 @@ Suche per String matching nach Stationen im angegebenen Landkreis
 
 ### parameter
 
-Suche per String matching nach Stationen mit angegebenem Messparameter
+Suche nach Stationen mit dem angegebenen Messparameter, über das Kürzel (z.B. `WT`) oder den ganzen Namen ohne den Zusatz „Rohdaten“ (z.B. `Wassertemperatur`). Groß- und Kleinschreibung spielen keine Rolle, Teile eines Namens treffen nicht.
 > http://localhost:3000/search?parameter=wassertemperatur
 
 ### bbox

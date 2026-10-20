@@ -9,6 +9,7 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger';
 
 import { StationQuery } from '../query/station-query';
+import { parameterName } from '../stations/station-filter';
 import { PegelonlineStation } from '../stations/station.model';
 import { StationsService } from '../stations/stations.service';
 
@@ -31,7 +32,8 @@ const OPTION_VALUES: Record<
     st.einzugsgebiet,
     ...(st.einzugsgebiet_alternatives ?? []),
   ],
-  parameter: (st) => st.timeseries.flatMap((ts) => [ts.longname, ts.shortname]),
+  parameter: (st) =>
+    st.timeseries.flatMap((ts) => [parameterName(ts.longname), ts.shortname]),
 };
 // a set, so names of the object prototype like "constructor" are no parameters
 const OPTION_PARAMETERS = new Set(Object.keys(OPTION_VALUES));

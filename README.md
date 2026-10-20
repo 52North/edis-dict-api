@@ -12,7 +12,7 @@ $ npm install
 $ cp .env.example .env
 ```
 
-The configuration is read from `.env`, which is not part of the repository. `.env.example` contains the defaults.
+The configuration is read from `.env`, which is not part of the repository. `.env.example` contains the defaults. The app does not start without valid http(s) urls in `PEGELONLINE_BASE_URL` and `NOMINATIM_BASE_URL`, the trailing `/` of `NOMINATIM_BASE_URL` is optional.
 
 The enriched stations are stored in `stations.json` (`STATIONS_FILE_PATH`), which is also not part of the repository. Without it, the app starts without stations and fills them with the first harvest (`RUN_DATA_ENLARGING_ON_INIT`, `CRON_TIME_FOR_DATA_ENLARGING`).
 

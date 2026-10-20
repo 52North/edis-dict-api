@@ -286,6 +286,34 @@ describe('HarvestService', () => {
     expect(storedStations()[0].country).toBeUndefined();
   });
 
+  it('reports the stations without address at the end of the harvest', () => {
+    const warn = jest.spyOn(Logger.prototype, 'warn');
+
+    harvest([fresh('koeln'), fresh('dresden')], (lang, uuid) =>
+      of(
+        uuid === 'koeln'
+          ? address('Deutschland', 'Nordrhein-Westfalen', undefined, 'Köln')
+          : NOT_FOUND,
+      ),
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      'Finished enlarging 2 stations, geocoding failed for 1 of them',
+    );
+  });
+
+  it('reports no failed geocoding if all stations get an address', () => {
+    const warn = jest.spyOn(Logger.prototype, 'warn');
+    const log = jest.spyOn(Logger.prototype, 'log');
+
+    harvest([fresh('koeln')], () =>
+      of(address('Deutschland', 'Nordrhein-Westfalen', undefined, 'Köln')),
+    );
+
+    expect(log).toHaveBeenCalledWith('Finished enlarging 1 stations');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('removes stations which pegelonline no longer delivers', () => {
     store['stations'] = structuredClone(STATIONS);
 

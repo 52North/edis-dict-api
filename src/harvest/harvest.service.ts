@@ -57,6 +57,9 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
 
   private harvestRunning = false;
 
+  // stations of the running harvest without address, a lot of them hint at a broken nominatim
+  private failedGeocodings = 0;
+
   private cronJob?: CronJob;
 
   constructor(
@@ -96,6 +99,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     this.harvestRunning = true;
+    this.failedGeocodings = 0;
     this.logger.log(`Start fetching stations`);
     const config: AxiosRequestConfig = { timeout: PEGELONLINE_TIMEOUT_MS };
     if (this.proxyProtocol && this.proxyHost && this.proxyPort) {
@@ -155,6 +159,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
             ]),
           });
         } else {
+          this.failedGeocodings++;
           this.logger.warn(
             `Failed geocoding for station ${station.longname}, keeping previous address data`,
           );
@@ -212,7 +217,13 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
   /** Searches see the previous stations until the whole harvest is done. */
   private finishHarvest(stations: PegelonlineStation[]) {
     this.stationStore.replace(stations);
-    this.logger.log(`Finished enlarging ${stations.length} stations`);
+    if (this.failedGeocodings) {
+      this.logger.warn(
+        `Finished enlarging ${stations.length} stations, geocoding failed for ${this.failedGeocodings} of them`,
+      );
+    } else {
+      this.logger.log(`Finished enlarging ${stations.length} stations`);
+    }
   }
 
   private mergeToArray(

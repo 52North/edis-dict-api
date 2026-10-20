@@ -12,6 +12,7 @@ import { limitConcurrentRequests } from './request-limiter';
 import { SearchTermListService } from './search-term-list/search-term-list';
 import { StationStore } from './stations/station-store';
 import { StationsService } from './stations/stations.service';
+import { validateConfig } from './validate-config';
 
 /**
  * Limits the concurrent outgoing requests of the shared HttpService, which the
@@ -23,7 +24,7 @@ import { StationsService } from './stations/stations.service';
     HttpModule.register({
       maxRedirects: 5,
     }),
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ validate: validateConfig }),
   ],
   controllers: [QueryController, OptionsController],
   providers: [

@@ -29,7 +29,7 @@ interface NominatimReverseResponse {
 
 /**
  * Reverse geocoding with the nominatim at NOMINATIM_BASE_URL, e.g. the one of
- * docker/docker-compose.yml.
+ * docker/docker-compose.yml. The url ends with a slash, see validateConfig.
  */
 @Injectable()
 export class NominatimService {

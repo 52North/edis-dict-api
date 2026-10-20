@@ -8,11 +8,11 @@ import { HarvestService } from './harvest/harvest.service';
 import { NominatimService } from './nominatim/nominatim.service';
 import { OptionsController } from './options/options.controller';
 import { QueryController } from './query/query.controller';
+import { limitConcurrentRequests } from './request-limiter';
 import { SearchTermListService } from './search-term-list/search-term-list';
 import { StationStore } from './stations/station-store';
 import { StationsService } from './stations/stations.service';
 
-const INTERVAL_MS = 100;
 @Module({
   imports: [
     HttpModule.register({
@@ -32,38 +32,10 @@ const INTERVAL_MS = 100;
   ],
 })
 export class AppModule {
-  private pendingRequests = 0;
-
-  private readonly maxRequestsCount = this.configService.get<number>(
-    'MAX_REQUESTS_COUNT',
-    99,
-  );
-
-  constructor(
-    private readonly configService: ConfigService,
-    private httpService: HttpService,
-  ) {
-    httpService.axiosRef.interceptors.request.use((config) => {
-      return new Promise((resolve) => {
-        const interval = setInterval(() => {
-          if (this.pendingRequests < this.maxRequestsCount) {
-            this.pendingRequests++;
-            clearInterval(interval);
-            resolve(config);
-          }
-        }, INTERVAL_MS);
-      });
-    });
-
-    httpService.axiosRef.interceptors.response.use(
-      (response) => {
-        this.pendingRequests = Math.max(0, this.pendingRequests - 1);
-        return Promise.resolve(response);
-      },
-      (error) => {
-        this.pendingRequests = Math.max(0, this.pendingRequests - 1);
-        return Promise.reject(error);
-      },
+  constructor(configService: ConfigService, httpService: HttpService) {
+    limitConcurrentRequests(
+      httpService.axiosRef,
+      Number(configService.get('MAX_REQUESTS_COUNT', 99)),
     );
   }
 }

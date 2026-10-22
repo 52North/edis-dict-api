@@ -12,6 +12,8 @@ Aufruf der Swagger-UI zur Dict API
 
 Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter werden diese durch eine UND-Verknüpfung kombiniert. Jeder Parameter darf nur einmal angegeben werden, ungültige Angaben beantwortet die API mit HTTP 400. Unbekannte Parameter werden ignoriert.
 
+Die Textparameter vergleichen ohne Groß- und Kleinschreibung und finden auch Teile eines Namens, mit `match=exact` nur ganze Namen (siehe [match](#match)).
+
 Für einige Stationen liefert Pegelonline keine Koordinaten. Sie haben dann weder `latitude`/`longitude` noch Adresse und Einzugsgebiet, deshalb finden `land`, `kreis`, `country`, `einzugsgebiet` und `bbox` sie nicht.
 
 ### station
@@ -71,6 +73,16 @@ Suche per String matching nach Stationen in der durch Koordinaten angegebenen Bo
 
 Allgemeiner Suchparameter, durch den alle vorhergehenden Parameter per String matching durchsucht werden
 > http://localhost:3000/search?q=köln
+
+### match
+
+Legt fest, wie `station`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet` und `kreis` vergleichen. Mit `contains` (Standard) finden sie auch Teile eines Namens, `land=Sachsen` also auch Niedersachsen und Sachsen-Anhalt. Mit `exact` trifft nur der ganze Name oder eine ganze alternative Benennung, weiterhin ohne Groß- und Kleinschreibung. `q`, `number`, `parameter` und `bbox` bleiben unverändert. Andere Werte als `contains` und `exact` beantwortet die API mit HTTP 400.
+> http://localhost:3000/search?land=Sachsen&match=exact
+
+Auch Alternativen treffen nur ganz:
+> http://localhost:3000/search?land=Saxony&match=exact
+
+Ein Wert aus `/options` (siehe [Werte der Suchparameter](#werte-der-suchparameter)) findet mit `match=exact` genau die Stationen mit diesem Wert.
 
 ## Werte der Suchparameter
 

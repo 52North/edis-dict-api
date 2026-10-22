@@ -17,6 +17,9 @@ describe('StationQueryPipe', () => {
     ['a bbox with spaces and decimals', { bbox: ' 7.5, 52 ,8.25,53' }],
     ['the whole world as bbox', { bbox: '-180,-90,180,90' }],
     ['an empty bbox', { bbox: '' }],
+    ['match=exact', { land: 'Sachsen', match: 'exact' }],
+    ['match=contains', { land: 'Sachsen', match: 'contains' }],
+    ['an empty match', { land: 'Sachsen', match: '' }],
   ])('accepts %s', (_, query) => {
     expect(pipe.transform(query)).toBe(query);
     expect(warn).not.toHaveBeenCalled();
@@ -30,6 +33,9 @@ describe('StationQueryPipe', () => {
     ['a bbox with an empty value', { bbox: '7,,8,53' }],
     ['a bbox with swapped corners', { bbox: '8,52,7,53' }],
     ['a bbox outside of the coordinate range', { bbox: '7,52,8,91' }],
+    ['an unknown match', { land: 'Sachsen', match: 'fuzzy' }],
+    ['a match in upper case', { land: 'Sachsen', match: 'EXACT' }],
+    ['a repeated match', { land: 'Sachsen', match: ['exact', 'exact'] }],
   ])('rejects %s', (_, query) => {
     expect(() => pipe.transform(query)).toThrow(BadRequestException);
   });

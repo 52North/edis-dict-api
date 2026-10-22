@@ -111,6 +111,46 @@ describe('StationsService', () => {
     ['q in part of the number', { q: '5010' }, ['dresden']],
     ['q and land', { q: 'wassertemperatur', land: 'sachsen' }, ['dresden']],
     ['q and bbox', { q: 'sachsen', bbox: '12,52,13,53' }, ['genthin']],
+    ['land exactly', { land: 'sachsen', match: 'exact' }, ['dresden']],
+    [
+      'land by part with match=contains',
+      { land: 'sachsen', match: 'contains' },
+      ['herbrum', 'genthin', 'dresden'],
+    ],
+    [
+      'kreis exactly by alternative',
+      { kreis: 'KOELN', match: 'exact' },
+      ['koeln'],
+    ],
+    ['kreis exactly, not by part', { kreis: 'emsland', match: 'exact' }, []],
+    ['station exactly', { station: 'köln', match: 'exact' }, ['koeln']],
+    ['station exactly, not by part', { station: 'kö', match: 'exact' }, []],
+    [
+      'gewaesser exactly by alternative',
+      { gewaesser: 'rhine', match: 'exact' },
+      ['koeln'],
+    ],
+    [
+      'gewaesser exactly, not by part',
+      { gewaesser: 'rhei', match: 'exact' },
+      [],
+    ],
+    ['agency exactly, not by part', { agency: 'standort', match: 'exact' }, []],
+    [
+      'country exactly by alternative',
+      { country: 'germany', match: 'exact' },
+      ['koeln'],
+    ],
+    [
+      'einzugsgebiet exactly',
+      { einzugsgebiet: 'rhein', match: 'exact' },
+      ['koeln'],
+    ],
+    [
+      'q by part also with match=exact',
+      { q: 'sachsen', match: 'exact' },
+      ['herbrum', 'genthin', 'dresden'],
+    ],
   ])('filters by %s', (_, query, expected) => {
     expect(search(query)).toEqual(expected);
   });

@@ -16,13 +16,13 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 
-import { StationQuery } from '../query/station-query';
+import { FilterParameter } from '../query/station-query';
 import { parameterName } from '../stations/station-filter';
 import { PegelonlineStation } from '../stations/station.model';
 import { StationsService } from '../stations/stations.service';
 
 // q and bbox have no fixed values to list
-type OptionParameter = Exclude<keyof StationQuery, 'q' | 'bbox'>;
+type OptionParameter = Exclude<FilterParameter, 'q' | 'bbox'>;
 
 /** A value of a search parameter with its alternative names, for grouped=true. */
 export class OptionGroup {

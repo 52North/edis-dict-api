@@ -69,7 +69,19 @@ export class StationQuery {
       'Suche über alle verfügbaren Parameter (z.B. <code>Köln</code>)',
   })
   q?: string;
+  @ApiProperty({
+    required: false,
+    enum: ['contains', 'exact'],
+    description:
+      'Vergleich für <code>station</code>, <code>gewaesser</code>, <code>agency</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code> und <code>kreis</code>: <code>contains</code> (Standard) findet auch Teile eines Namens, <code>exact</code> nur den ganzen Namen oder eine ganze alternative Benennung, beide ohne Groß- und Kleinschreibung (z.B. <code>land=Sachsen&match=exact</code> ohne Niedersachsen und Sachsen-Anhalt)',
+  })
+  match?: 'contains' | 'exact';
 }
+
+export const MATCH_MODES = ['contains', 'exact'];
+
+/** The parameters that filter, match only sets how some of them compare. */
+export type FilterParameter = Exclude<keyof StationQuery, 'match'>;
 
 /** minLon, minLat, maxLon, maxLat in degrees, like the station coordinates */
 export type Bbox = [number, number, number, number];

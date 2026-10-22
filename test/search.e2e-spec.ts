@@ -78,9 +78,23 @@ describe('Search API (e2e)', () => {
     expect(uuids(res)).toEqual(['genthin']);
   });
 
+  it('searches a land exactly with match=exact', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .query({ land: 'Sachsen', match: 'exact' })
+      .expect(200);
+
+    expect(uuids(res)).toEqual(['dresden']);
+  });
+
   it.each([
     ['an invalid bbox', 'bbox=abc', 'Parameter bbox must have the form'],
     ['a repeated parameter', 'q=a&q=b', 'Parameter q must be a single value'],
+    [
+      'an unknown match',
+      'land=Sachsen&match=fuzzy',
+      'Parameter match must be contains or exact',
+    ],
   ])('rejects %s', async (_, query, message) => {
     const res = await request(app.getHttpServer())
       .get(`/search?${query}`)
@@ -148,6 +162,22 @@ describe('Search API (e2e)', () => {
       'value',
       'alternatives',
     ]);
+  });
+
+  it('describes the match modes of the search', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const match = document.paths['/search']?.get?.parameters?.find(
+      (p) => 'name' in p && p.name === 'match',
+    );
+
+    expect(match).toMatchObject({
+      in: 'query',
+      required: false,
+      schema: { enum: ['contains', 'exact'] },
+    });
   });
 
   it('describes the timeseries of a station as an array', () => {

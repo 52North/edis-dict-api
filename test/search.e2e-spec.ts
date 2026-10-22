@@ -98,11 +98,56 @@ describe('Search API (e2e)', () => {
     expect(res.body).toEqual(['Deutschland', 'Germany']);
   });
 
+  it('lists the options grouped with their alternatives', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/options')
+      .query({ parameter: 'kreis', grouped: 'true' })
+      .expect(200);
+
+    expect(res.body).toEqual([
+      { value: 'Dresden', alternatives: [] },
+      { value: 'Köln', alternatives: ['Koeln'] },
+      { value: 'Landkreis Emsland', alternatives: [] },
+    ]);
+  });
+
   it.each([
     ['missing', {}],
     ['unsupported', { parameter: 'unknown' }],
   ])('rejects a %s options parameter', async (_, query) => {
     await request(app.getHttpServer()).get('/options').query(query).expect(400);
+  });
+
+  it.each([
+    ['an invalid', 'parameter=kreis&grouped=yes'],
+    ['a repeated', 'parameter=kreis&grouped=true&grouped=true'],
+  ])('rejects %s grouped parameter', async (_, query) => {
+    const res = await request(app.getHttpServer())
+      .get(`/options?${query}`)
+      .expect(400);
+
+    expect(res.body.message).toBe('grouped must be true or false');
+  });
+
+  it('describes the options with their parameters', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
+
+    expect(
+      document.paths['/options']?.get?.parameters?.map((p) =>
+        'name' in p ? p.name : undefined,
+      ),
+    ).toEqual(['parameter', 'grouped']);
+    expect(Object.keys(schemas.OptionGroup.properties ?? {})).toEqual([
+      'value',
+      'alternatives',
+    ]);
   });
 
   it('describes the timeseries of a station as an array', () => {

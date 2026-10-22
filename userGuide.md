@@ -71,3 +71,24 @@ Suche per String matching nach Stationen in der durch Koordinaten angegebenen Bo
 
 Allgemeiner Suchparameter, durch den alle vorhergehenden Parameter per String matching durchsucht werden
 > http://localhost:3000/search?q=köln
+
+## Werte der Suchparameter
+
+Liefert die sortierten Werte eines Suchparameters über alle Stationen, z. B. für Auswahllisten oder eine Autovervollständigung. Möglich sind `station`, `number`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet`, `kreis` und `parameter`. Fehlt `parameter` oder ist er nicht dabei, antwortet die API mit HTTP 400.
+> http://localhost:3000/options?parameter=land
+
+Die Liste enthält auch die alternativen Benennungen, die die Suche ebenfalls findet, z. B. `Bavaria` neben `Bayern`.
+
+### grouped
+
+Mit `grouped=true` kommt je Wert ein Objekt mit seinen alternativen Benennungen. So lassen sich nur die Werte anzeigen, während die Eingabe auch die Alternativen findet. Bei `parameter` ist der Wert der Name der Messgröße ohne „Rohdaten“, die Alternative ihr Kürzel. Andere Werte als `true` und `false` beantwortet die API mit HTTP 400.
+> http://localhost:3000/options?parameter=land&grouped=true
+
+```json
+[
+  { "value": "Baden-Württemberg", "alternatives": ["Bade-Wurtemberg", "Baden-Wuerttemberg", "Badenia-Wirtembergia"] },
+  { "value": "Basel-Stadt", "alternatives": ["Basel-City", "Bazel-Stad", "Bâle-Ville"] },
+  { "value": "Bayern", "alternatives": ["Bavaria", "Bavière", "Bawaria", "Beieren"] },
+  …
+]
+```

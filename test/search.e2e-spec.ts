@@ -159,4 +159,18 @@ describe('Search API (e2e)', () => {
       'longDescription',
     ]);
   });
+
+  it('describes the mqtt topic of a timeseries as optional for forecasts', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
+
+    expect(schemas.PegelonlineTimeseries.required).toContain('pegelonlinelink');
+    expect(schemas.PegelonlineTimeseries.required).not.toContain('mqtttopic');
+  });
 });

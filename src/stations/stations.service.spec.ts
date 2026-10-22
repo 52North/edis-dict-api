@@ -81,6 +81,12 @@ describe('StationsService', () => {
     ],
     ['parameter with ß', { parameter: 'Fließgeschwindigkeit' }, ['herbrum']],
     ['parameter by ROHDATEN only', { parameter: 'rohdaten' }, []],
+    ['forecast by short name', { parameter: 'WV' }, ['dresden']],
+    [
+      'forecast by long name',
+      { parameter: 'wasserstandvorhersage' },
+      ['dresden'],
+    ],
     ['bbox', { bbox: '6,50,8,54' }, ['koeln', 'herbrum']],
     [
       'bbox without stations lacking coordinates',
@@ -120,5 +126,17 @@ describe('StationsService', () => {
     expect(response.stations[0].timeseries[1].mqtttopic).toBe(
       'edis/pegelonline/+/+/+/+/koeln/WT',
     );
+  });
+
+  it('adds a pegelonline link but no mqtt topic to forecasts', () => {
+    const dresden = STATIONS.filter((st) => st.uuid === 'dresden');
+
+    const response = service.prepareResponse(dresden);
+
+    expect(response.pegelonlinelinks).toContain(
+      'http://pegelonline/stations/dresden/WV/measurements.json',
+    );
+    expect(response.stations[0].timeseries[2].shortname).toBe('WV');
+    expect(response.stations[0].timeseries[2]).not.toHaveProperty('mqtttopic');
   });
 });

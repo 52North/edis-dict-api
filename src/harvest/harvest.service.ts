@@ -21,12 +21,22 @@ import {
 
 import { SearchTermListService } from '../search-term-list/search-term-list';
 import { StationStore } from '../stations/station-store';
-import { LocatedStation, PegelonlineStation } from '../stations/station.model';
+import {
+  LocatedStation,
+  PegelonlineStation,
+  PegelonlineTimeseries,
+} from '../stations/station.model';
 import { DrainageAreasService } from './drainage-areas.service';
 import { GeocodingService, StationAddress } from './geocoding.service';
 
 // the station list with all timeseries is large, so allow more time than for nominatim
 const PEGELONLINE_TIMEOUT_MS = 60000;
+
+// pegelonline delivers forecasts with the period they cover, see removeForecastPeriod
+type DeliveredTimeseries = PegelonlineTimeseries & {
+  start?: string;
+  end?: string;
+};
 
 /**
  * Fetches the stations from pegelonline and enriches them with address,
@@ -110,7 +120,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
         port: this.proxyPort,
       };
     }
-    const url = `${this.pegelonlineBaseUrl}/stations.json?includeTimeseries=true`;
+    const url = `${this.pegelonlineBaseUrl}/stations.json?includeTimeseries=true&includeForecastTimeseries=true`;
     this.httpService
       .get<PegelonlineStation[]>(url, config)
       .pipe(
@@ -121,6 +131,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
             this.logger.warn(`Received no stations, keeping the previous ones`);
             return EMPTY;
           }
+          stations.forEach((st) => this.removeForecastPeriod(st));
           // keeps the order of pegelonline
           return forkJoin(stations.map((st) => this.enrichStation(st)));
         }),
@@ -202,6 +213,19 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
         return station;
       }),
     );
+  }
+
+  /**
+   * Removes start and end of the forecasts, the comment with their source
+   * stays. The harvest runs once a day, but pegelonline publishes new forecasts
+   * during the day, so both would be outdated most of the time. The
+   * pegelonlinelink always leads to the current forecast.
+   */
+  private removeForecastPeriod(station: PegelonlineStation) {
+    for (const ts of station.timeseries as DeliveredTimeseries[]) {
+      delete ts.start;
+      delete ts.end;
+    }
   }
 
   private setAddress(

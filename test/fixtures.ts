@@ -18,6 +18,11 @@ export const FLOW_VELOCITY = {
   longname: 'FLIESSGESCHWINDIGKEIT_ROHDATEN',
 } as PegelonlineTimeseries;
 
+export const WATER_LEVEL_FORECAST = {
+  shortname: 'WV',
+  longname: 'WASSERSTANDVORHERSAGE',
+} as PegelonlineTimeseries;
+
 // station as delivered by pegelonline, without enrichment
 export function createStation(
   station: Partial<PegelonlineStation>,
@@ -97,7 +102,7 @@ export const STATIONS: PegelonlineStation[] = [
     water_alternatives: ['Elb'],
     land: 'Sachsen',
     kreis: 'Dresden',
-    timeseries: [WATER_LEVEL, WATER_TEMPERATURE],
+    timeseries: [WATER_LEVEL, WATER_TEMPERATURE, WATER_LEVEL_FORECAST],
   }),
   // pegelonline has no coordinates for it, so it has neither address nor drainage area
   createStation({

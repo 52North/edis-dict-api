@@ -10,6 +10,9 @@ import {
   PegelonlineTimeseries,
 } from './station.model';
 
+// the mqtt broker publishes no forecasts, the water level forecast is pegelonline's only one so far
+const FORECASTS = new Set(['WV']);
+
 /** Searches the stored stations and prepares them for the response. */
 @Injectable()
 export class StationsService {
@@ -45,9 +48,12 @@ export class StationsService {
       const stationTopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/+`;
       mqtttopics.push(stationTopic);
       const timeseries = st.timeseries.map((ts) => {
-        const mqtttopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/${ts.shortname}`;
         const pegelonlinelink = `${this.pegelonlineBaseUrl}/stations/${st.uuid}/${ts.shortname}/measurements.json`;
         pegelonlinelinks.push(pegelonlinelink);
+        if (FORECASTS.has(ts.shortname)) {
+          return { ...ts, pegelonlinelink } as PegelonlineTimeseries;
+        }
+        const mqtttopic = `${this.mqttBase}/+/+/+/+/${st.uuid}/${ts.shortname}`;
         return { ...ts, mqtttopic, pegelonlinelink } as PegelonlineTimeseries;
       });
       const station = {

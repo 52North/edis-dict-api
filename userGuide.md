@@ -59,6 +59,9 @@ Suche per String matching nach Stationen im angegebenen Landkreis
 Suche nach Stationen mit dem angegebenen Messparameter, über das Kürzel (z.B. `WT`) oder den ganzen Namen ohne den Zusatz „Rohdaten“ (z.B. `Wassertemperatur`). Groß- und Kleinschreibung spielen keine Rolle, Teile eines Namens treffen nicht.
 > http://localhost:3000/search?parameter=wassertemperatur
 
+Die Wasserstandsvorhersage hat das Kürzel `WV` (`Wasserstandvorhersage`) und kommt vor allem an Elbe, Oder und Rhein vor. Die aktuelle Vorhersage liefert der `pegelonlinelink` der Zeitreihe, ein `mqtttopic` gibt es dafür nicht.
+> http://localhost:3000/search?parameter=WV
+
 ### bbox
 
 Suche per String matching nach Stationen in der durch Koordinaten angegebenen Bounding Box (`minLon, minLat, maxLon, maxLat`). Erlaubt sind Längengrade von -180 bis 180 und Breitengrade von -90 bis 90, das Minimum darf nicht größer als das Maximum sein.

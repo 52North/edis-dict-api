@@ -13,7 +13,12 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Observable, of, Subject, throwError } from 'rxjs';
 
-import { createStation, STATIONS } from '../../test/fixtures';
+import {
+  createStation,
+  STATIONS,
+  WATER_LEVEL,
+  WATER_LEVEL_FORECAST,
+} from '../../test/fixtures';
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
 import { SearchTermListService } from '../search-term-list/search-term-list';
 import { StationStore } from '../stations/station-store';
@@ -418,9 +423,32 @@ describe('HarvestService', () => {
     harvest([], () => of(NOT_FOUND));
 
     expect(httpService.get).toHaveBeenCalledWith(
-      'http://pegelonline/stations.json?includeTimeseries=true',
+      'http://pegelonline/stations.json?includeTimeseries=true&includeForecastTimeseries=true',
       { timeout: 60000 },
     );
+  });
+
+  it('stores forecasts without their period but with their source', () => {
+    const comment = {
+      shortDescription: 'wsa-md',
+      longDescription: 'Vorhersagen und Abschätzungen vom: 21.10.2026',
+    };
+    const forecast = {
+      ...WATER_LEVEL_FORECAST,
+      start: '2026-10-21T06:00:00+02:00',
+      end: '2026-10-23T06:00:00+02:00',
+      comment,
+    };
+
+    harvest(
+      [{ ...fresh('dresden'), timeseries: [WATER_LEVEL, forecast] }],
+      () => of(NOT_FOUND),
+    );
+
+    expect(storedStations()[0].timeseries).toEqual([
+      WATER_LEVEL,
+      { ...WATER_LEVEL_FORECAST, comment },
+    ]);
   });
 
   it('skips a harvest while another one is running', () => {

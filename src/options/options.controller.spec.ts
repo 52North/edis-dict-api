@@ -44,8 +44,10 @@ describe('OptionsController', () => {
         'VA',
         'W',
         'WASSERSTAND',
+        'WASSERSTANDVORHERSAGE',
         'WASSERTEMPERATUR',
         'WT',
+        'WV',
       ],
     ],
   ])(

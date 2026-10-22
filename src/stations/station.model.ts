@@ -19,15 +19,20 @@ export class PegelonlineGaugeZero {
   validFrom: string;
 }
 
-/** A disruption or outage of a timeseries from the pegelonline REST API v2. */
+/**
+ * A disruption or outage of a timeseries from the pegelonline REST API v2, for
+ * a forecast its source and creation time.
+ */
 export class PegelonlineComment {
   @ApiProperty({
-    description: 'Kurzbeschreibung der Störung oder des Ausfalls',
+    description:
+      'Kurzbeschreibung der Störung oder des Ausfalls, bei Vorhersagen das Kürzel der Quelle (z.B. <code>nwv-bfg</code>)',
   })
   shortDescription: string;
 
   @ApiProperty({
-    description: 'Ausführliche Beschreibung der Störung oder des Ausfalls',
+    description:
+      'Ausführliche Beschreibung der Störung oder des Ausfalls, bei Vorhersagen Erstellungszeit und Quelle',
   })
   longDescription: string;
 }
@@ -54,12 +59,15 @@ export class PegelonlineTimeseries {
   unit: string;
 
   @ApiProperty({
-    description: 'mqtt Topic für die Zeitreihe',
+    description:
+      'mqtt Topic für die Zeitreihe, fehlt bei Vorhersagen (<code>WV</code>)',
+    required: false,
   })
-  mqtttopic: string;
+  mqtttopic?: string;
 
   @ApiProperty({
-    description: 'Link zu den Messwerten',
+    description:
+      'Link zu den Messwerten, bei Vorhersagen zur aktuellen Vorhersage',
   })
   pegelonlinelink: string;
 
@@ -78,7 +86,7 @@ export class PegelonlineTimeseries {
 
   @ApiProperty({
     description:
-      'Störung oder Ausfall der Zeitreihe aus Pegelonline-API, fehlt ohne Störung',
+      'Störung oder Ausfall der Zeitreihe aus Pegelonline-API, bei Vorhersagen deren Quelle und Erstellungszeit zum Stand des letzten Harvests, fehlt sonst',
     required: false,
     type: PegelonlineComment,
   })

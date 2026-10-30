@@ -155,6 +155,27 @@ describe('StationsService', () => {
     expect(search(query)).toEqual(expected);
   });
 
+  it.each<[string, StationQuery, string[]]>([
+    [
+      'the exact water before parts of it',
+      { q: 'elbe', sort: 'relevance' },
+      ['dresden', 'genthin', 'rossdorf'],
+    ],
+    [
+      'the exact land before parts of it',
+      { q: 'sachsen', sort: 'relevance' },
+      ['dresden', 'herbrum', 'genthin'],
+    ],
+    ['nothing without sort', { q: 'elbe' }, ['genthin', 'dresden', 'rossdorf']],
+    [
+      'nothing without q',
+      { land: 'sachsen', sort: 'relevance' },
+      ['herbrum', 'genthin', 'dresden'],
+    ],
+  ])('sorts by relevance: %s', (_, query, expected) => {
+    expect(search(query)).toEqual(expected);
+  });
+
   it('adds mqtt topics and pegelonline links to the response', () => {
     const response = service.prepareResponse([STATIONS[0]]);
 

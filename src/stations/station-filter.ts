@@ -3,7 +3,7 @@ import {
   parseBbox,
   StationQuery,
 } from '../query/station-query';
-import { PegelonlineStation } from './station.model';
+import { PegelonlineStation, PegelonlineTimeseries } from './station.model';
 
 type Compare = (value: string | undefined, term: string) => boolean;
 
@@ -15,7 +15,7 @@ type StationFilter = (
 ) => boolean;
 
 /** Ignoring case, the term may be any part of the value. */
-function matches(value: string | undefined, term: string): boolean {
+export function matches(value: string | undefined, term: string): boolean {
   return !!value && value.toLowerCase().includes(term.toLowerCase());
 }
 
@@ -31,7 +31,10 @@ function anyOf(
   return !!values?.some((value) => compare(value, term));
 }
 
-function equalsIgnoringCase(value: string | undefined, term: string): boolean {
+export function equalsIgnoringCase(
+  value: string | undefined,
+  term: string,
+): boolean {
   return !!value && value.toLowerCase() === term.toLowerCase();
 }
 
@@ -45,6 +48,19 @@ export function parameterName(longname: string): string {
     .replaceAll('_', ' ')
     .trim()
     .replace(/\s+ROHDATEN$/i, '');
+}
+
+/**
+ * Whether the timeseries measures the parameter, given as short name or whole
+ * long name. A substring match would let "W" also find WT, WG or WR.
+ */
+export function isParameter(ts: PegelonlineTimeseries, term: string): boolean {
+  return (
+    // upper case turns ß into SS, so "Fließgeschwindigkeit" finds FLIESSGESCHWINDIGKEIT
+    parameterName(ts.longname).toUpperCase() ===
+      parameterName(term).toUpperCase() ||
+    equalsIgnoringCase(ts.shortname, term)
+  );
 }
 
 // a record, so the compiler reports parameters added to StationQuery but missing here
@@ -68,15 +84,7 @@ const FILTERS: Record<FilterParameter, StationFilter> = {
     anyOf(st.einzugsgebiet_alternatives, term, compare),
   kreis: (st, term, compare) =>
     compare(st.kreis, term) || anyOf(st.kreis_alternatives, term, compare),
-  // whole names, a substring match would let "W" also find WT, WG or WR
-  parameter: (st, term) =>
-    st.timeseries.some(
-      (ts) =>
-        // upper case turns ß into SS, so "Fließgeschwindigkeit" finds FLIESSGESCHWINDIGKEIT
-        parameterName(ts.longname).toUpperCase() ===
-          parameterName(term).toUpperCase() ||
-        equalsIgnoringCase(ts.shortname, term),
-    ),
+  parameter: (st, term) => st.timeseries.some((ts) => isParameter(ts, term)),
   bbox: (st, term) => {
     const bbox = parseBbox(term);
     // StationQueryPipe rejects invalid bboxes, a remaining one does not filter

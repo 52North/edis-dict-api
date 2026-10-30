@@ -118,6 +118,16 @@ describe('Search API (e2e)', () => {
     expect(uuids(res)).toEqual(['dresden']);
   });
 
+  it('sorts the hits of q by relevance with sort=relevance', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .query({ q: 'sachsen', sort: 'relevance' })
+      .expect(200);
+
+    // the land Sachsen exactly before Niedersachsen and Sachsen-Anhalt
+    expect(uuids(res)).toEqual(['dresden', 'herbrum', 'genthin']);
+  });
+
   it.each([
     ['an invalid bbox', 'bbox=abc', 'Parameter bbox must have the form'],
     ['a repeated parameter', 'q=a&q=b', 'Parameter q must be a single value'],
@@ -126,6 +136,7 @@ describe('Search API (e2e)', () => {
       'land=Sachsen&match=fuzzy',
       'Parameter match must be contains or exact',
     ],
+    ['an unknown sort', 'q=elbe&sort=name', 'Parameter sort must be relevance'],
   ])('rejects %s', async (_, query, message) => {
     const res = await request(app.getHttpServer())
       .get(`/search?${query}`)
@@ -195,19 +206,22 @@ describe('Search API (e2e)', () => {
     ]);
   });
 
-  it('describes the match modes of the search', () => {
+  it.each([
+    ['match', ['contains', 'exact']],
+    ['sort', ['relevance']],
+  ])('describes the %s modes of the search', (name, modes) => {
     const document = SwaggerModule.createDocument(
       app,
       new DocumentBuilder().build(),
     );
-    const match = document.paths['/search']?.get?.parameters?.find(
-      (p) => 'name' in p && p.name === 'match',
+    const parameter = document.paths['/search']?.get?.parameters?.find(
+      (p) => 'name' in p && p.name === name,
     );
 
-    expect(match).toMatchObject({
+    expect(parameter).toMatchObject({
       in: 'query',
       required: false,
-      schema: { enum: ['contains', 'exact'] },
+      schema: { enum: modes },
     });
   });
 

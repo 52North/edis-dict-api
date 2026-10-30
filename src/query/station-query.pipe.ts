@@ -5,7 +5,12 @@ import {
   PipeTransform,
 } from '@nestjs/common';
 
-import { MATCH_MODES, parseBbox, StationQuery } from './station-query';
+import {
+  MATCH_MODES,
+  parseBbox,
+  SORT_MODES,
+  StationQuery,
+} from './station-query';
 
 // a record, so the compiler reports parameters added to StationQuery but missing here
 const PARAMETERS: Record<keyof StationQuery, true> = {
@@ -21,12 +26,13 @@ const PARAMETERS: Record<keyof StationQuery, true> = {
   bbox: true,
   q: true,
   match: true,
+  sort: true,
 };
 const PARAMETER_NAMES = new Set(Object.keys(PARAMETERS));
 
 /**
  * Checks the parameters of /search before the filters run. Repeated parameters,
- * invalid bboxes and unknown match modes are rejected with 400, unknown
+ * invalid bboxes and unknown match or sort modes are rejected with 400, unknown
  * parameters are only logged and passed on, the filters ignore them.
  */
 @Injectable()
@@ -64,6 +70,9 @@ export class StationQueryPipe implements PipeTransform<
       throw new BadRequestException(
         'Parameter match must be contains or exact',
       );
+    }
+    if (query.sort && !SORT_MODES.includes(query.sort as string)) {
+      throw new BadRequestException('Parameter sort must be relevance');
     }
     return query as StationQuery;
   }

@@ -85,6 +85,25 @@ Auch Alternativen treffen nur ganz:
 
 Ein Wert aus `/options` (siehe [Werte der Suchparameter](#werte-der-suchparameter)) findet mit `match=exact` genau die Stationen mit diesem Wert.
 
+### sort
+
+Ohne `sort` kommen die Treffer in der Reihenfolge von Pegelonline. Mit `sort=relevance` stehen die Treffer von `q` vorn, die am besten passen, jeweils ohne Groß- und Kleinschreibung:
+
+1. `q` ist genau der Name, die Pegelnummer oder die UUID der Station
+2. genau das Gewässer oder eine alternative Benennung davon
+3. genau die Stadt oder der Kreis, auch als Alternative
+4. genau ein anderes Feld: Bundesland, Land, Einzugsgebiet, Agency oder eine Messgröße (wie bei `parameter`)
+5. der Name beginnt mit `q`
+6. der Name enthält `q`
+7. das Gewässer enthält `q`
+8. die Stadt oder der Kreis enthält `q`
+9. alle übrigen Treffer
+
+Innerhalb einer Stufe bleibt die Reihenfolge von Pegelonline. Die Treffermenge ändert sich nicht. Ohne `q` hat `sort` keine Wirkung. Andere Werte als `relevance` beantwortet die API mit HTTP 400.
+> http://localhost:3000/search?q=sachsen&sort=relevance
+
+liefert zuerst die Pegel in Sachsen, dann SACHSENHAUSEN und erst danach die Pegel in Niedersachsen und Sachsen-Anhalt. Ohne `sort` stehen die Pegel in Niedersachsen vorn.
+
 ## Werte der Suchparameter
 
 Liefert die sortierten Werte eines Suchparameters über alle Stationen, z. B. für Auswahllisten oder eine Autovervollständigung. Möglich sind `station`, `number`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet`, `kreis` und `parameter`. Fehlt `parameter` oder ist er nicht dabei, antwortet die API mit HTTP 400.

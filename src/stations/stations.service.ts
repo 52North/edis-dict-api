@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { StationQuery } from '../query/station-query';
 import { searchStations } from './station-filter';
+import { sortByRelevance } from './station-relevance';
 import { StationStore } from './station-store';
 import {
   AggregatedStationResponse,
@@ -29,9 +30,15 @@ export class StationsService {
     private readonly configService: ConfigService,
   ) {}
 
-  /** The stations matching the query, without a query all stations. */
+  /**
+   * The stations matching the query, without a query all stations. They keep
+   * their stored order, with sort=relevance the hits of q come by relevance.
+   */
   getStations(query: StationQuery = {}): PegelonlineStation[] {
-    return searchStations(this.stationStore.getAll(), query);
+    const stations = searchStations(this.stationStore.getAll(), query);
+    return query.sort === 'relevance' && query.q
+      ? sortByRelevance(stations, query.q)
+      : stations;
   }
 
   /**

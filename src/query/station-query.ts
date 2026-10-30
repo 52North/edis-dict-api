@@ -76,12 +76,23 @@ export class StationQuery {
       'Vergleich für <code>station</code>, <code>gewaesser</code>, <code>agency</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code> und <code>kreis</code>: <code>contains</code> (Standard) findet auch Teile eines Namens, <code>exact</code> nur den ganzen Namen oder eine ganze alternative Benennung, beide ohne Groß- und Kleinschreibung (z.B. <code>land=Sachsen&match=exact</code> ohne Niedersachsen und Sachsen-Anhalt)',
   })
   match?: 'contains' | 'exact';
+  @ApiProperty({
+    required: false,
+    enum: ['relevance'],
+    description:
+      'Reihenfolge der Treffer von <code>q</code>: <code>relevance</code> stellt die Stationen vorn an, bei denen <code>q</code> genau passt, zuerst auf Name oder Pegelnummer, dann Gewässer, dann Ort oder Kreis, dann die übrigen Felder. Es folgen Namen, die mit <code>q</code> beginnen, dann Teiltreffer in Name, Gewässer, Ort und den übrigen Feldern. Ohne <code>sort</code> oder ohne <code>q</code> bleibt die Reihenfolge von Pegelonline (z.B. <code>q=Sachsen&sort=relevance</code> mit den Pegeln in Sachsen vor denen in Niedersachsen und Sachsen-Anhalt)',
+  })
+  sort?: 'relevance';
 }
 
 export const MATCH_MODES = ['contains', 'exact'];
+export const SORT_MODES = ['relevance'];
 
-/** The parameters that filter, match only sets how some of them compare. */
-export type FilterParameter = Exclude<keyof StationQuery, 'match'>;
+/**
+ * The parameters that filter, match only sets how some of them compare and
+ * sort the order of the hits.
+ */
+export type FilterParameter = Exclude<keyof StationQuery, 'match' | 'sort'>;
 
 /** minLon, minLat, maxLon, maxLat in degrees, like the station coordinates */
 export type Bbox = [number, number, number, number];

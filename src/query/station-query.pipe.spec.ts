@@ -20,6 +20,8 @@ describe('StationQueryPipe', () => {
     ['match=exact', { land: 'Sachsen', match: 'exact' }],
     ['match=contains', { land: 'Sachsen', match: 'contains' }],
     ['an empty match', { land: 'Sachsen', match: '' }],
+    ['sort=relevance', { q: 'sachsen', sort: 'relevance' }],
+    ['an empty sort', { q: 'sachsen', sort: '' }],
   ])('accepts %s', (_, query) => {
     expect(pipe.transform(query)).toBe(query);
     expect(warn).not.toHaveBeenCalled();
@@ -36,6 +38,7 @@ describe('StationQueryPipe', () => {
     ['an unknown match', { land: 'Sachsen', match: 'fuzzy' }],
     ['a match in upper case', { land: 'Sachsen', match: 'EXACT' }],
     ['a repeated match', { land: 'Sachsen', match: ['exact', 'exact'] }],
+    ['an unknown sort', { q: 'sachsen', sort: 'name' }],
   ])('rejects %s', (_, query) => {
     expect(() => pipe.transform(query)).toThrow(BadRequestException);
   });

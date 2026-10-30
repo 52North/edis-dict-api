@@ -4,6 +4,7 @@ import { DocumentBuilder, SchemaObject, SwaggerModule } from '@nestjs/swagger';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
+import { configureApp } from '../src/configure-app';
 import { OptionsController } from '../src/options/options.controller';
 import { QueryController } from '../src/query/query.controller';
 import { StationStore } from '../src/stations/station-store';
@@ -34,6 +35,7 @@ describe('Search API (e2e)', () => {
     }).compile();
 
     app = module.createNestApplication();
+    configureApp(app);
     await app.init();
     app.get(StationStore)['stations'] = structuredClone(STATIONS);
   });
@@ -67,6 +69,35 @@ describe('Search API (e2e)', () => {
     const res = await request(app.getHttpServer()).get('/search').expect(200);
 
     expect(uuids(res)).toHaveLength(STATIONS.length);
+  });
+
+  it('compresses the response if the client accepts it', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .set('Accept-Encoding', 'gzip')
+      .expect(200);
+
+    expect(res.headers['content-encoding']).toBe('gzip');
+    expect(uuids(res)).toHaveLength(STATIONS.length);
+  });
+
+  it('answers uncompressed if the client accepts only identity', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .set('Accept-Encoding', 'identity')
+      .expect(200);
+
+    expect(res.headers['content-encoding']).toBeUndefined();
+    expect(uuids(res)).toHaveLength(STATIONS.length);
+  });
+
+  it('allows requests from all origins', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .set('Origin', 'http://client')
+      .expect(200);
+
+    expect(res.headers['access-control-allow-origin']).toBe('*');
   });
 
   it('ignores unknown parameters like cache busters', async () => {

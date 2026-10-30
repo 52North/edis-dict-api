@@ -2,6 +2,7 @@
 
 - stellt die Pegelonline Stationen in aufbereiteter Form zur Verfügung
 - macht die Stationen mit verschiedenen Parametern durchsuchbar
+- komprimiert Antworten ab 1 KB mit Brotli oder gzip, wenn der Client das per `Accept-Encoding` anbietet (Browser tun das von selbst)
 
 ## Swagger-UI
 

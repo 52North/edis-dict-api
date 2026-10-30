@@ -30,6 +30,10 @@ $ npm run build
 $ npm run start:prod
 ```
 
+## Compression
+
+Responses from 1 KB on are compressed with Brotli or gzip if the client accepts it (`Accept-Encoding`), via the `compression` middleware. `/search` without parameters shrinks from about 1.2 MB to 95 KB. A reverse proxy in front of the API therefore does not need to compress, but it has to pass `Accept-Encoding` on.
+
 ## Nominatim
 
 The harvest gets the address of each station with coordinates (country, state, county, city) by reverse geocoding with Nominatim (`NOMINATIM_BASE_URL`). `docker/docker-compose.yml` runs a local instance with the OpenStreetMap extract of Germany on port 9090, which matches `.env.example`:

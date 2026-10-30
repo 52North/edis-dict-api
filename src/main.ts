@@ -10,6 +10,7 @@ import {
 } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import { configureApp } from './configure-app';
 
 // markdown for the Swagger UI, the ODbL requires the attribution of the OpenStreetMap data
 const DESCRIPTION = [
@@ -21,8 +22,8 @@ const DESCRIPTION = [
 ].join('\n');
 
 /**
- * Starts the API on PORT, with the Swagger UI at /api and CORS open for all
- * origins.
+ * Starts the API on PORT, with the Swagger UI at /api, CORS open for all
+ * origins and compressed responses.
  */
 async function bootstrap() {
   const server = express();
@@ -34,7 +35,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3000);
 
-  app.enableCors();
+  configureApp(app);
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Dict API für Pegelonline')

@@ -48,6 +48,20 @@ export function alternativesIn(
   );
 }
 
+/** The names of the language (without region), all of them without lang. */
+export function namesIn(
+  names: Record<string, string> | undefined,
+  lang: string | undefined,
+): Record<string, string> | undefined {
+  if (!lang || !names) {
+    return names;
+  }
+  const base = baseLanguage(lang);
+  return Object.fromEntries(
+    Object.entries(names).filter(([l]) => baseLanguage(l) === base),
+  );
+}
+
 /** The alternatives of the field that count for the language, see alternativesIn. */
 export function alternatives(
   station: PegelonlineStation,

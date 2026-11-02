@@ -120,14 +120,28 @@ Die Liste enthält auch die alternativen Benennungen, die die Suche ebenfalls fi
 
 ### grouped
 
-Mit `grouped=true` kommt je Wert ein Objekt mit seinen alternativen Benennungen. So lassen sich nur die Werte anzeigen, während die Eingabe auch die Alternativen findet. Bei `parameter` ist der Wert der Name der Messgröße ohne „Rohdaten“, die Alternative ihr Kürzel. Andere Werte als `true` und `false` beantwortet die API mit HTTP 400.
+Mit `grouped=true` kommt je Wert ein Objekt mit seinen alternativen Benennungen und seinen Namen je Sprache (`names`, leer, wenn es keine gibt, siehe [Sprachen](#sprachen)). So lassen sich nur die Werte anzeigen, während die Eingabe auch die Alternativen findet. Bei `parameter` ist der Wert der Name der Messgröße ohne „Rohdaten“, die Alternative ihr Kürzel. Andere Werte als `true` und `false` beantwortet die API mit HTTP 400.
 > http://localhost:3000/options?parameter=land&grouped=true
 
 ```json
 [
-  { "value": "Baden-Württemberg", "alternatives": ["Bade-Wurtemberg", "Baden-Wuerttemberg", "Badenia-Wirtembergia"] },
-  { "value": "Basel-Stadt", "alternatives": ["Basel-City", "Bazel-Stad", "Bâle-Ville"] },
-  { "value": "Bayern", "alternatives": ["Bavaria", "Bavière", "Bawaria", "Beieren"] },
+  …
+  { "value": "Bayern", "alternatives": ["Bavaria", "Bavière", "Bavorsko", "Bawaria", "Beieren"], "names": { "en": "Bavaria", "pl": "Bawaria", "cs": "Bavorsko", "fr": "Bavière", "nl": "Beieren" } },
+  { "value": "Brandenburg", "alternatives": ["Brandebourg", "Brandeburgia", "Braniborsko"], "names": { "pl": "Brandeburgia", "cs": "Braniborsko", "fr": "Brandebourg" } },
+  …
+]
+```
+
+### lang
+
+Mit `lang` enthalten `alternatives` und `names` nur die Benennungen dieser Sprache und die ohne Sprache, wie bei der Suche mit [lang](#lang). Das gilt auch für die flache Liste ohne `grouped`.
+> http://localhost:3000/options?parameter=land&grouped=true&lang=en
+
+```json
+[
+  { "value": "Baden-Württemberg", "alternatives": ["Baden-Wuerttemberg"], "names": {} },
+  { "value": "Bayern", "alternatives": ["Bavaria"], "names": { "en": "Bavaria" } },
+  { "value": "Brandenburg", "alternatives": [], "names": {} },
   …
 ]
 ```

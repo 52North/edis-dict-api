@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { STATIONS } from '../../test/fixtures';
+import { createStation, STATIONS } from '../../test/fixtures';
 import { StationsService } from '../stations/stations.service';
 import { OptionsController } from './options.controller';
 
@@ -63,42 +63,137 @@ describe('OptionsController', () => {
     [
       'kreis',
       [
-        { value: 'Dresden', alternatives: [] },
-        { value: 'Köln', alternatives: ['Koeln'] },
-        { value: 'Landkreis Emsland', alternatives: [] },
+        { value: 'Dresden', alternatives: [], names: {} },
+        { value: 'Köln', alternatives: ['Koeln'], names: {} },
+        { value: 'Landkreis Emsland', alternatives: [], names: {} },
       ],
     ],
     [
       'gewaesser',
       [
         // the alternative DEK equals the value and is left out
-        { value: 'DEK', alternatives: [] },
-        { value: 'EHK', alternatives: [] },
-        { value: 'ELBE', alternatives: ['Elb'] },
-        { value: 'RHEIN', alternatives: ['Rhine'] },
+        { value: 'DEK', alternatives: [], names: {} },
+        { value: 'EHK', alternatives: [], names: {} },
+        { value: 'ELBE', alternatives: ['Elb'], names: {} },
+        { value: 'RHEIN', alternatives: ['Rhine'], names: {} },
       ],
     ],
     [
       'parameter',
       [
-        { value: 'FLIESSGESCHWINDIGKEIT', alternatives: ['VA'] },
-        { value: 'WASSERSTAND', alternatives: ['W'] },
-        { value: 'WASSERSTANDVORHERSAGE', alternatives: ['WV'] },
-        { value: 'WASSERTEMPERATUR', alternatives: ['WT'] },
+        { value: 'FLIESSGESCHWINDIGKEIT', alternatives: ['VA'], names: {} },
+        { value: 'WASSERSTAND', alternatives: ['W'], names: {} },
+        { value: 'WASSERSTANDVORHERSAGE', alternatives: ['WV'], names: {} },
+        { value: 'WASSERTEMPERATUR', alternatives: ['WT'], names: {} },
       ],
     ],
     [
       // Roßdorf has no coordinates and therefore no land
       'land',
       [
-        { value: 'Niedersachsen', alternatives: [] },
-        { value: 'Nordrhein-Westfalen', alternatives: [] },
-        { value: 'Sachsen', alternatives: [] },
-        { value: 'Sachsen-Anhalt', alternatives: [] },
+        { value: 'Niedersachsen', alternatives: [], names: {} },
+        { value: 'Nordrhein-Westfalen', alternatives: [], names: {} },
+        { value: 'Sachsen', alternatives: [], names: {} },
+        { value: 'Sachsen-Anhalt', alternatives: [], names: {} },
       ],
     ],
   ])('groups the alternatives by value for %s', (parameter, expected) => {
     expect(grouped(parameter)).toEqual(expected);
+  });
+
+  describe('names and lang', () => {
+    // two stations in Bayern, the second names it differently in Polish
+    const NAMED = [
+      createStation({
+        land: 'Bayern',
+        land_alternatives: ['BY', 'Bavaria', 'Bawaria'],
+        land_names: { en: 'Bavaria', pl: 'Bawaria' },
+        water: { shortname: 'DONAU', longname: 'DONAU' },
+        water_alternatives: ['Danube'],
+        water_names: { en: 'Danube' },
+      }),
+      createStation({
+        land: 'Bayern',
+        land_alternatives: ['Bawarii'],
+        land_names: { pl: 'Bawarii', 'de-AT': 'Bayern (AT)' },
+      }),
+      createStation({ land: 'Hessen' }),
+    ];
+
+    beforeEach(() => stationsService.getStations.mockReturnValue(NAMED));
+
+    afterEach(() =>
+      stationsService.getStations.mockImplementation(() => STATIONS),
+    );
+
+    const withLang = (parameter: string, lang: string, grouped?: string) =>
+      controller.findAll({ parameter, grouped, lang });
+
+    it('groups the names by language of all stations, the first one winning', () => {
+      expect(grouped('land')).toEqual([
+        {
+          value: 'Bayern',
+          alternatives: ['BY', 'Bavaria', 'Bawaria', 'Bawarii'],
+          names: { en: 'Bavaria', pl: 'Bawaria', 'de-AT': 'Bayern (AT)' },
+        },
+        { value: 'Hessen', alternatives: [], names: {} },
+      ]);
+    });
+
+    it('lists the names of the water', () => {
+      expect(grouped('gewaesser')).toContainEqual({
+        value: 'DONAU',
+        alternatives: ['Danube'],
+        names: { en: 'Danube' },
+      });
+    });
+
+    it('limits alternatives and names to the language', () => {
+      expect(withLang('land', 'en', 'true')).toEqual([
+        {
+          value: 'Bayern',
+          alternatives: ['BY', 'Bavaria'],
+          names: { en: 'Bavaria' },
+        },
+        { value: 'Hessen', alternatives: [], names: {} },
+      ]);
+    });
+
+    it('takes the language without region', () => {
+      expect(withLang('land', 'de-CH', 'true')[0]).toEqual({
+        value: 'Bayern',
+        alternatives: ['BY'],
+        names: { 'de-AT': 'Bayern (AT)' },
+      });
+    });
+
+    it('limits the flat list to the language', () => {
+      expect(withLang('land', 'en')).toEqual([
+        'BY',
+        'Bavaria',
+        'Bayern',
+        'Hessen',
+      ]);
+    });
+
+    it('takes an empty lang as not set', () => {
+      expect(withLang('land', '', 'true')).toEqual(grouped('land'));
+    });
+
+    it.each<[string, unknown]>([
+      ['a language name', 'english'],
+      ['an underscore', 'de_CH'],
+      ['a repeated lang', ['en', 'de']],
+    ])('rejects %s as lang', (_, lang) => {
+      expect(() =>
+        controller.findAll({ parameter: 'land', lang: lang as string }),
+      ).toThrow(
+        new HttpException(
+          'lang must be a language like en or de-CH',
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+    });
   });
 
   it('lists the flat values with grouped=false', () => {

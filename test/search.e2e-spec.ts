@@ -161,10 +161,35 @@ describe('Search API (e2e)', () => {
       .expect(200);
 
     expect(res.body).toEqual([
-      { value: 'Dresden', alternatives: [] },
-      { value: 'Köln', alternatives: ['Koeln'] },
-      { value: 'Landkreis Emsland', alternatives: [] },
+      { value: 'Dresden', alternatives: [], names: {} },
+      { value: 'Köln', alternatives: ['Koeln'], names: {} },
+      { value: 'Landkreis Emsland', alternatives: [], names: {} },
     ]);
+  });
+
+  it('lists the grouped options in a language', async () => {
+    const store = app.get(StationStore);
+    const stations = store['stations'];
+    const named = structuredClone(stations);
+    const dresden = named.find((st) => st.uuid === 'dresden')!;
+    dresden.land_alternatives = ['Saxony', 'Saksonia'];
+    dresden.land_names = { en: 'Saxony', pl: 'Saksonia' };
+    store['stations'] = named;
+
+    try {
+      const res = await request(app.getHttpServer())
+        .get('/options')
+        .query({ parameter: 'land', grouped: 'true', lang: 'en' })
+        .expect(200);
+
+      expect(res.body).toContainEqual({
+        value: 'Sachsen',
+        alternatives: ['Saxony'],
+        names: { en: 'Saxony' },
+      });
+    } finally {
+      store['stations'] = stations;
+    }
   });
 
   it.each([
@@ -199,10 +224,11 @@ describe('Search API (e2e)', () => {
       document.paths['/options']?.get?.parameters?.map((p) =>
         'name' in p ? p.name : undefined,
       ),
-    ).toEqual(['parameter', 'grouped']);
+    ).toEqual(['parameter', 'grouped', 'lang']);
     expect(Object.keys(schemas.OptionGroup.properties ?? {})).toEqual([
       'value',
       'alternatives',
+      'names',
     ]);
   });
 

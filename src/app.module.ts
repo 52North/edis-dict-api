@@ -7,6 +7,7 @@ import { GeocodingService } from './harvest/geocoding.service';
 import { HarvestService } from './harvest/harvest.service';
 import { SensorWebService } from './harvest/sensorweb.service';
 import { NominatimService } from './nominatim/nominatim.service';
+import { FacetsController } from './options/facets.controller';
 import { OptionsController } from './options/options.controller';
 import { QueryController } from './query/query.controller';
 import { limitConcurrentRequests } from './request-limiter';
@@ -27,7 +28,7 @@ import { validateConfig } from './validate-config';
     }),
     ConfigModule.forRoot({ validate: validateConfig }),
   ],
-  controllers: [QueryController, OptionsController],
+  controllers: [QueryController, OptionsController, FacetsController],
   providers: [
     StationsService,
     StationStore,

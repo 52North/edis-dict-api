@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
 import { configureApp } from '../src/configure-app';
+import { FacetsController } from '../src/options/facets.controller';
 import { OptionsController } from '../src/options/options.controller';
 import { QueryController } from '../src/query/query.controller';
 import { StationStore } from '../src/stations/station-store';
@@ -20,7 +21,7 @@ describe('Search API (e2e)', () => {
       PEGELONLINE_BASE_URL: 'http://pegelonline',
     };
     const module = await Test.createTestingModule({
-      controllers: [QueryController, OptionsController],
+      controllers: [QueryController, OptionsController, FacetsController],
       providers: [
         StationsService,
         StationStore,
@@ -412,6 +413,78 @@ describe('Search API (e2e)', () => {
         (p) => 'name' in p && p.name === 'lang',
       ),
     ).toMatchObject({ in: 'query', required: false });
+  });
+
+  it('lists the values of the fields among the hits, each without its own filter', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/facets')
+      .query({ fields: 'land,kreis', land: 'Sachsen', match: 'exact' })
+      .expect(200);
+
+    expect(res.body.count).toBe(1);
+    expect(
+      res.body.facets.land.values.map((v: { value: string }) => v.value),
+    ).toEqual([
+      'Niedersachsen',
+      'Nordrhein-Westfalen',
+      'Sachsen',
+      'Sachsen-Anhalt',
+    ]);
+    expect(res.body.facets.land.missing).toBe(1);
+    expect(res.body.facets.kreis).toEqual({
+      values: [{ value: 'Dresden', count: 1, alternatives: [], names: {} }],
+      missing: 0,
+    });
+  });
+
+  it.each([
+    ['missing fields', {}, 'missing fields'],
+    ['an unknown field', { fields: 'region' }, 'unsupported field region'],
+    [
+      'an invalid filter',
+      { fields: 'land', match: 'fuzzy' },
+      'Parameter match must be contains or exact',
+    ],
+  ])('rejects facets with %s', async (_, query, message) => {
+    const res = await request(app.getHttpServer())
+      .get('/facets')
+      .query(query)
+      .expect(400);
+
+    expect(res.body.message).toBe(message);
+  });
+
+  it('describes the facets with fields and the filters of the search', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const parameters = document.paths['/facets']?.get?.parameters ?? [];
+    const named = (name: string) =>
+      parameters.find((p) => 'name' in p && p.name === name);
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
+
+    expect(named('fields')).toMatchObject({ in: 'query', required: true });
+    for (const name of ['q', 'land', 'parameter', 'bbox', 'match', 'lang']) {
+      expect(named(name)).toMatchObject({ in: 'query', required: false });
+    }
+    expect(named('sort')).toBeUndefined();
+    expect(Object.keys(schemas.FacetsResponse.properties ?? {})).toEqual([
+      'count',
+      'facets',
+    ]);
+    expect(schemas.FacetsResponse.properties?.facets).toMatchObject({
+      additionalProperties: { $ref: '#/components/schemas/Facet' },
+    });
+    expect(Object.keys(schemas.FacetValue.properties ?? {})).toEqual([
+      'value',
+      'alternatives',
+      'names',
+      'count',
+    ]);
   });
 
   it('returns the stored Sensor Web links of the timeseries', async () => {

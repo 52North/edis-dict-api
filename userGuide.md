@@ -146,6 +146,38 @@ Mit `lang` enthalten `alternatives` und `names` nur die Benennungen dieser Sprac
 ]
 ```
 
+## Facetten
+
+Liefert die Werte von Feldern unter den Treffern einer Suche, mit der Anzahl der Treffer je Wert, z. B. für eine Facettensuche: Nach der Wahl eines Bundeslandes bietet ein Client nur noch dessen Kreise an. `fields` nennt kommagetrennt die Felder, möglich sind dieselben wie bei den [Werten der Suchparameter](#werte-der-suchparameter). Dazu kommen alle Filter der Suche einschließlich `match` und [lang](#lang). Fehlende oder unbekannte Felder und ungültige Filter beantwortet die API mit HTTP 400.
+> http://localhost:3000/facets?fields=kreis&land=Bayern&match=exact
+
+Jedes Feld zählt ohne den Filter auf sich selbst, damit sich ein gewählter Wert gegen einen anderen tauschen lässt. Mit `land=Bayern` listet `land` also alle Bundesländer, `kreis` nur die Kreise in Bayern. `count` ist die Zahl der Treffer mit allen Filtern, wie bei `/search`. Je Feld kommen die Werte mit `alternatives` und `names` wie bei `grouped=true`, die häufigsten zuerst, bei gleicher Anzahl nach Name; `missing` zählt die Treffer ohne Wert. Bei `parameter` zählt eine Station je Messgröße einmal.
+> http://localhost:3000/facets?fields=land,kreis&land=Bayern&match=exact&lang=en
+
+```json
+{
+  "count": 27,
+  "facets": {
+    "land": {
+      "values": [
+        { "value": "Niedersachsen", "alternatives": ["Lower Saxony"], "names": { "en": "Lower Saxony" }, "count": 155 },
+        { "value": "Brandenburg", "alternatives": [], "names": {}, "count": 104 },
+        …
+      ],
+      "missing": 65
+    },
+    "kreis": {
+      "values": [
+        { "value": "Passau", "alternatives": ["PA"], "names": {}, "count": 5 },
+        { "value": "Landkreis Kelheim", "alternatives": ["KEH", "MAI", "PAR", "RID", "ROL"], "names": {}, "count": 4 },
+        …
+      ],
+      "missing": 0
+    }
+  }
+}
+```
+
 ## Sprachen
 
 Land, Bundesland, Kreis und Ort kommen auf Deutsch aus Nominatim. Ihre Namen in den weiteren Sprachen des Harvests (`ADDITIONAL_HARVEST_LANGUAGE_LIST`, z. B. `en`, `fr`, `nl`, `de-CH`) stehen je Sprache in `country_names`, `land_names`, `kreis_names` und `city_names`, aber nur, wenn sie vom deutschen Namen abweichen. Umschreibungen wie „Koeln“ und Kürzel haben keine Sprache und stehen nur in den `*_alternatives`, die weiterhin alle Benennungen enthalten.

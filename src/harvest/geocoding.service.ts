@@ -5,19 +5,28 @@ import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import { AddressData, NominatimService } from '../nominatim/nominatim.service';
 import { LocatedStation } from '../stations/station.model';
 
-/** The address of a station, the alternatives hold other languages and transcriptions. */
+/**
+ * The address of a station, the alternatives hold other languages and
+ * transcriptions, the names the other languages by language.
+ */
 export interface StationAddress {
   /** uuid of the station */
   id: string;
   country?: string;
   country_alternatives?: string[];
+  country_names?: Record<string, string>;
   land?: string;
   land_alternatives?: string[];
+  land_names?: Record<string, string>;
   kreis?: string;
   kreis_alternatives?: string[];
+  kreis_names?: Record<string, string>;
   city?: string;
   city_alternatives?: string[];
+  city_names?: Record<string, string>;
 }
+
+const ADDRESS_FIELDS = ['country', 'land', 'kreis', 'city'] as const;
 
 interface AddressTupel {
   country?: string;
@@ -29,7 +38,7 @@ interface AddressTupel {
 /**
  * Reverse geocodes stations with nominatim. The address is in German, names in
  * the ADDITIONAL_HARVEST_LANGUAGE_LIST languages and transcriptions become
- * alternatives.
+ * alternatives, the names also by language.
  */
 @Injectable()
 export class GeocodingService {
@@ -93,32 +102,25 @@ export class GeocodingService {
           city: deTupel.city,
           city_alternatives: this.getTranscriptions(deTupel.city),
         };
-        this.harvestLanguageList.forEach((e) => {
-          const data = res[e];
+        this.harvestLanguageList.forEach((lang) => {
+          const data = res[lang];
           if (!data) {
             return;
           }
           const tupel = this.getTupel(data);
-          response.country_alternatives = this.addAlternative(
-            response.country_alternatives,
-            response.country,
-            tupel.country,
-          );
-          response.land_alternatives = this.addAlternative(
-            response.land_alternatives,
-            response.land,
-            tupel.land,
-          );
-          response.kreis_alternatives = this.addAlternative(
-            response.kreis_alternatives,
-            response.kreis,
-            tupel.kreis,
-          );
-          response.city_alternatives = this.addAlternative(
-            response.city_alternatives,
-            response.city,
-            tupel.city,
-          );
+          for (const field of ADDRESS_FIELDS) {
+            response[`${field}_alternatives`] = this.addAlternative(
+              response[`${field}_alternatives`],
+              response[field],
+              tupel[field],
+            );
+            response[`${field}_names`] = this.addName(
+              response[`${field}_names`],
+              lang,
+              response[field],
+              tupel[field],
+            );
+          }
         });
         return response;
       }),
@@ -139,6 +141,19 @@ export class GeocodingService {
       return alternatives;
     }
     return [...(alternatives ?? []), alternative];
+  }
+
+  /** Adds the name of the language unless it is empty or the value itself. */
+  private addName(
+    names: Record<string, string> | undefined,
+    lang: string,
+    value?: string,
+    name?: string,
+  ): Record<string, string> | undefined {
+    if (!name || name === value) {
+      return names;
+    }
+    return { ...names, [lang]: name };
   }
 
   /** Umlauts and ß written out, so that e.g. "Koeln" also finds Köln. */

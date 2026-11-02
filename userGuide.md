@@ -125,6 +125,21 @@ Mit `grouped=true` kommt je Wert ein Objekt mit seinen alternativen Benennungen.
 ]
 ```
 
+## Sprachen
+
+Land, Bundesland, Kreis und Ort kommen auf Deutsch aus Nominatim. Ihre Namen in den weiteren Sprachen des Harvests (`ADDITIONAL_HARVEST_LANGUAGE_LIST`, z. B. `en`, `fr`, `nl`, `de-CH`) stehen je Sprache in `country_names`, `land_names`, `kreis_names` und `city_names`, aber nur, wenn sie vom deutschen Namen abweichen. Umschreibungen wie „Koeln“ und Kürzel haben keine Sprache und stehen nur in den `*_alternatives`, die weiterhin alle Benennungen enthalten.
+
+```json
+{
+  "city": "Köln",
+  "city_alternatives": ["Koeln", "Cologne", "Kolonia", "Kolín nad Rýnem", "Keulen"],
+  "city_names": { "en": "Cologne", "pl": "Kolonia", "cs": "Kolín nad Rýnem", "fr": "Cologne", "nl": "Keulen" },
+  …
+}
+```
+
+Gewässer und Einzugsgebiete haben noch keine Namen je Sprache.
+
 ## Download über die Sensor Web API
 
 Jede Zeitreihe, zu der die Sensor Web API (gdi-sos) ein Dataset hat, enthält einen `sensorweblink` zum Download ihrer Messwerte als CSV. Ohne weitere Angabe liefert er die letzte Woche, mit `timespan` als ISO-8601-Zeitraum den angegebenen:

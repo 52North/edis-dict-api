@@ -285,6 +285,10 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     station.kreis_alternatives = address.kreis_alternatives;
     station.city = address.city;
     station.city_alternatives = address.city_alternatives;
+    station.country_names = address.country_names;
+    station.land_names = address.land_names;
+    station.kreis_names = address.kreis_names;
+    station.city_names = address.city_names;
   }
 
   private keepPreviousAddress(station: PegelonlineStation) {

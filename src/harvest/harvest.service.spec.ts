@@ -211,12 +211,19 @@ describe('HarvestService', () => {
         uuid: 'koeln',
         country: 'Deutschland',
         country_alternatives: ['Germany'],
+        country_names: { en: 'Germany', fr: 'Germany' },
         land: 'Nordrhein-Westfalen',
         land_alternatives: ['North Rhine-Westphalia'],
+        land_names: {
+          en: 'North Rhine-Westphalia',
+          fr: 'North Rhine-Westphalia',
+        },
         kreis: 'Köln',
         kreis_alternatives: ['Koeln', 'Cologne', 'K'],
+        kreis_names: { en: 'Cologne', fr: 'Cologne' },
         city: 'Köln',
         city_alternatives: ['Koeln', 'Cologne'],
+        city_names: { en: 'Cologne', fr: 'Cologne' },
         water_alternatives: ['Rhine'],
         einzugsgebiet: 'Rhein',
       }),
@@ -310,11 +317,51 @@ describe('HarvestService', () => {
       expect.objectContaining({
         country: 'Deutschland',
         country_alternatives: ['Allemagne'],
+        country_names: { fr: 'Allemagne' },
         land_alternatives: ['Rhénanie-du-Nord-Westphalie'],
+        land_names: { fr: 'Rhénanie-du-Nord-Westphalie' },
         kreis_alternatives: ['Koeln', 'Cologne'],
+        kreis_names: { fr: 'Cologne' },
         city_alternatives: ['Koeln', 'Cologne'],
+        city_names: { fr: 'Cologne' },
       }),
     ]);
+  });
+
+  it('stores only names of the other languages differing from the German one', () => {
+    harvest([fresh('koeln')], (lang) =>
+      of(
+        {
+          de: address('Österreich', 'Tirol', 'Bezirk Kufstein', 'Kufstein'),
+          en: address('Austria', 'Tyrol', 'Bezirk Kufstein', 'Kufstein'),
+          fr: address('Autriche', 'Tyrol', 'District de Kufstein', 'Kufstein'),
+        }[lang] ?? NOT_FOUND,
+      ),
+    );
+
+    const [station] = storedStations();
+    expect(station.country_alternatives).toEqual([
+      'Oesterreich',
+      'Austria',
+      'Autriche',
+    ]);
+    expect(station.country_names).toEqual({ en: 'Austria', fr: 'Autriche' });
+    expect(station.land_alternatives).toEqual(['Tyrol']);
+    expect(station.land_names).toEqual({ en: 'Tyrol', fr: 'Tyrol' });
+    expect(station.kreis_names).toEqual({ fr: 'District de Kufstein' });
+    expect(station.city_names).toBeUndefined();
+  });
+
+  it('keeps the names of the previous harvest if the geocoding fails', () => {
+    const previous = structuredClone(STATIONS.slice(0, 1));
+    previous[0].land_names = { en: 'North Rhine-Westphalia' };
+    store['stations'] = previous;
+
+    harvest([fresh('koeln')], () => throwError(() => new Error('down')));
+
+    expect(storedStations()[0].land_names).toEqual({
+      en: 'North Rhine-Westphalia',
+    });
   });
 
   it('adds a new station without address if the geocoding fails', () => {

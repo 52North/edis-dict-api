@@ -45,6 +45,8 @@ docker compose -f docker/docker-compose.yml logs -f
 
 The first start imports the extract, which takes several hours. The instance is ready when the log shows `Nominatim is ready to accept requests`. It only answers reverse requests and gets no updates. For newer data, remove the container and its volume with `docker compose -f docker/docker-compose.yml down -v` and start again.
 
+Names in the languages of `ADDITIONAL_HARVEST_LANGUAGE_LIST` that differ from the German one become alternatives and are also stored by language in `country_names`, `land_names`, `kreis_names` and `city_names`.
+
 If geocoding fails for a station, the harvest keeps its previous address. To check the addresses after a harvest, copy `stations.json` beforehand and compare:
 
 ```bash

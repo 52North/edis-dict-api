@@ -312,6 +312,29 @@ describe('Search API (e2e)', () => {
     );
   });
 
+  it('describes the names by language as optional maps', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
+
+    for (const field of ['country', 'land', 'kreis', 'city']) {
+      expect(
+        schemas.PegelonlineStation.properties?.[`${field}_names`],
+      ).toMatchObject({
+        type: 'object',
+        additionalProperties: { type: 'string' },
+      });
+      expect(schemas.PegelonlineStation.required).not.toContain(
+        `${field}_names`,
+      );
+    }
+  });
+
   it('returns the stored Sensor Web links of the timeseries', async () => {
     const store = app.get(StationStore);
     const stations = store['stations'];

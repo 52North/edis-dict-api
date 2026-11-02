@@ -1,4 +1,5 @@
-// compares the addresses of two station files, e.g. before and after a harvest
+// compares the addresses of two station files, e.g. before and after a harvest,
+// with their alternatives and names by language
 // usage: npm run compare-stations -- [before] [after]
 const { readFileSync } = require('fs');
 
@@ -36,6 +37,26 @@ function diffAlternatives(before = [], after = []) {
   ].join(' ');
 }
 
+// the names by language, a map missing before (older stations.json) is not compared
+function diffNames(before, after = {}) {
+  if (!before) {
+    return '';
+  }
+  const langs = [...new Set([...Object.keys(before), ...Object.keys(after)])];
+  return langs
+    .filter((lang) => before[lang] !== after[lang])
+    .map((lang) => {
+      if (before[lang] === undefined) {
+        return `+${lang}:'${after[lang]}'`;
+      }
+      if (after[lang] === undefined) {
+        return `-${lang}:'${before[lang]}'`;
+      }
+      return `${lang}: '${before[lang]}' → '${after[lang]}'`;
+    })
+    .join(' ');
+}
+
 // the names first, the alternatives change more often and are less important
 function changes(before, after) {
   const lines = FIELDS.filter((field) => before[field] !== after[field]).map(
@@ -46,6 +67,11 @@ function changes(before, after) {
     const diff = diffAlternatives(before[key], after[key]);
     if (diff) {
       lines.push(`${key}: ${diff}`);
+    }
+    const namesKey = `${field}_names`;
+    const namesDiff = diffNames(before[namesKey], after[namesKey]);
+    if (namesDiff) {
+      lines.push(`${namesKey}: ${namesDiff}`);
     }
   });
   return lines;

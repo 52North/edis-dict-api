@@ -203,6 +203,16 @@ export class PegelonlineStation {
   city_alternatives?: string[];
 
   @ApiProperty({
+    description:
+      'Namen zur Stadt je Sprache der Nominatim-Abfrage (<code>ADDITIONAL_HARVEST_LANGUAGE_LIST</code>), nur vom deutschen Namen abweichende; Umschreibungen und Kürzel stehen nur in <code>city_alternatives</code>',
+    required: false,
+    type: Object,
+    additionalProperties: { type: 'string' },
+    example: { en: 'Cologne', nl: 'Keulen' },
+  })
+  city_names?: Record<string, string>;
+
+  @ApiProperty({
     description: 'Land - angereichert in der DICT-API',
     required: false,
   })
@@ -213,6 +223,16 @@ export class PegelonlineStation {
     required: false,
   })
   country_alternatives?: string[];
+
+  @ApiProperty({
+    description:
+      'Namen zum Land je Sprache der Nominatim-Abfrage (<code>ADDITIONAL_HARVEST_LANGUAGE_LIST</code>), nur vom deutschen Namen abweichende; Umschreibungen und Kürzel stehen nur in <code>country_alternatives</code>',
+    required: false,
+    type: Object,
+    additionalProperties: { type: 'string' },
+    example: { en: 'Germany', fr: 'Allemagne' },
+  })
+  country_names?: Record<string, string>;
 
   @ApiProperty({
     description: 'Bundesland - angereichert in der DICT-API',
@@ -227,6 +247,16 @@ export class PegelonlineStation {
   land_alternatives?: string[];
 
   @ApiProperty({
+    description:
+      'Namen zum Bundesland je Sprache der Nominatim-Abfrage (<code>ADDITIONAL_HARVEST_LANGUAGE_LIST</code>), nur vom deutschen Namen abweichende; Umschreibungen und Kürzel stehen nur in <code>land_alternatives</code>',
+    required: false,
+    type: Object,
+    additionalProperties: { type: 'string' },
+    example: { en: 'Lower Saxony', fr: 'Basse-Saxe' },
+  })
+  land_names?: Record<string, string>;
+
+  @ApiProperty({
     description: 'Landkreis - angereichert in der DICT-API',
     required: false,
   })
@@ -237,6 +267,19 @@ export class PegelonlineStation {
     required: false,
   })
   kreis_alternatives?: string[];
+
+  @ApiProperty({
+    description:
+      'Namen zum Landkreis je Sprache der Nominatim-Abfrage (<code>ADDITIONAL_HARVEST_LANGUAGE_LIST</code>), nur vom deutschen Namen abweichende; Umschreibungen und Kürzel stehen nur in <code>kreis_alternatives</code>',
+    required: false,
+    type: Object,
+    additionalProperties: { type: 'string' },
+    example: {
+      fr: 'Arrondissement de Poméranie-Occidentale-Rügen',
+      pl: 'Pomorze Przednie-Rugia',
+    },
+  })
+  kreis_names?: Record<string, string>;
 
   @ApiProperty({
     description: 'Einzugsgebiet - angereichert in der DICT-API',

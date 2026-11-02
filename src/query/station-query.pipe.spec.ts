@@ -22,6 +22,10 @@ describe('StationQueryPipe', () => {
     ['an empty match', { land: 'Sachsen', match: '' }],
     ['sort=relevance', { q: 'sachsen', sort: 'relevance' }],
     ['an empty sort', { q: 'sachsen', sort: '' }],
+    ['a language', { land: 'Saxony', lang: 'en' }],
+    ['a language with region', { land: 'Saxony', lang: 'de-CH' }],
+    ['a language in upper case', { land: 'Saxony', lang: 'EN' }],
+    ['an empty lang', { land: 'Saxony', lang: '' }],
   ])('accepts %s', (_, query) => {
     expect(pipe.transform(query)).toBe(query);
     expect(warn).not.toHaveBeenCalled();
@@ -39,6 +43,10 @@ describe('StationQueryPipe', () => {
     ['a match in upper case', { land: 'Sachsen', match: 'EXACT' }],
     ['a repeated match', { land: 'Sachsen', match: ['exact', 'exact'] }],
     ['an unknown sort', { q: 'sachsen', sort: 'name' }],
+    ['a language name', { lang: 'english' }],
+    ['a single letter as language', { lang: 'e' }],
+    ['a language with underscore', { lang: 'de_CH' }],
+    ['a repeated lang', { lang: ['en', 'de'] }],
   ])('rejects %s', (_, query) => {
     expect(() => pipe.transform(query)).toThrow(BadRequestException);
   });

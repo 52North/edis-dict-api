@@ -83,16 +83,27 @@ export class StationQuery {
       'Reihenfolge der Treffer von <code>q</code>: <code>relevance</code> stellt die Stationen vorn an, bei denen <code>q</code> genau passt, zuerst auf Name oder Pegelnummer, dann Gewässer, dann Ort oder Kreis, dann die übrigen Felder. Es folgen Namen, die mit <code>q</code> beginnen, dann Teiltreffer in Name, Gewässer, Ort und den übrigen Feldern. Ohne <code>sort</code> oder ohne <code>q</code> bleibt die Reihenfolge von Pegelonline (z.B. <code>q=Sachsen&sort=relevance</code> mit den Pegeln in Sachsen vor denen in Niedersachsen und Sachsen-Anhalt)',
   })
   sort?: 'relevance';
+  @ApiProperty({
+    required: false,
+    description:
+      'Sprache der alternativen Benennungen für <code>gewaesser</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code>, <code>kreis</code> und <code>q</code>: Sie vergleichen dann nur mit dem deutschen Namen, den Namen dieser Sprache (ohne Region, <code>de</code> umfasst <code>de-AT</code> und <code>de-CH</code>) und den Benennungen ohne Sprache wie Umschreibungen und Kürzeln. Ohne <code>lang</code> zählen alle Sprachen (z.B. findet <code>land=Bavaria&lang=en</code> Bayern, <code>land=Bawaria&lang=en</code> nicht)',
+  })
+  lang?: string;
 }
 
 export const MATCH_MODES = ['contains', 'exact'];
 export const SORT_MODES = ['relevance'];
+/** A language with optional region and further subtags, e.g. en or de-CH. */
+export const LANGUAGE_TAG = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i;
 
 /**
- * The parameters that filter, match only sets how some of them compare and
- * sort the order of the hits.
+ * The parameters that filter, match only sets how some of them compare, sort
+ * the order of the hits and lang the language of the alternative names.
  */
-export type FilterParameter = Exclude<keyof StationQuery, 'match' | 'sort'>;
+export type FilterParameter = Exclude<
+  keyof StationQuery,
+  'match' | 'sort' | 'lang'
+>;
 
 /** minLon, minLat, maxLon, maxLat in degrees, like the station coordinates */
 export type Bbox = [number, number, number, number];

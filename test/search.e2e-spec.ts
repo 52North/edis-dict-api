@@ -342,6 +342,52 @@ describe('Search API (e2e)', () => {
     }
   });
 
+  it('compares the alternatives of the language with lang', async () => {
+    const store = app.get(StationStore);
+    const stations = store['stations'];
+    const named = structuredClone(stations);
+    const dresden = named.find((st) => st.uuid === 'dresden')!;
+    dresden.land_alternatives = ['Saxony', 'Saksonia'];
+    dresden.land_names = { en: 'Saxony', pl: 'Saksonia' };
+    store['stations'] = named;
+    const search = (lang: string) =>
+      request(app.getHttpServer())
+        .get('/search')
+        .query({ land: 'Saxony', match: 'exact', lang })
+        .expect(200);
+
+    try {
+      expect(uuids(await search('en'))).toEqual(['dresden']);
+      expect(uuids(await search('pl'))).toEqual([]);
+    } finally {
+      store['stations'] = stations;
+    }
+  });
+
+  it('rejects a lang of another form', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/search')
+      .query({ land: 'Saxony', lang: 'english' })
+      .expect(400);
+
+    expect(res.body.message).toBe(
+      'Parameter lang must be a language like en or de-CH',
+    );
+  });
+
+  it('describes lang as optional parameter of the search', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+
+    expect(
+      document.paths['/search']?.get?.parameters?.find(
+        (p) => 'name' in p && p.name === 'lang',
+      ),
+    ).toMatchObject({ in: 'query', required: false });
+  });
+
   it('returns the stored Sensor Web links of the timeseries', async () => {
     const store = app.get(StationStore);
     const stations = store['stations'];

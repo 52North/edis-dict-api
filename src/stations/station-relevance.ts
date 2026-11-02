@@ -1,4 +1,10 @@
-import { equalsIgnoringCase, isParameter, matches } from './station-filter';
+import {
+  alternatives,
+  equalsIgnoringCase,
+  isParameter,
+  matches,
+  NamedField,
+} from './station-filter';
 import { PegelonlineStation } from './station.model';
 
 type Values = (string | undefined)[];
@@ -14,29 +20,26 @@ const contain = (values: Values, q: string) =>
  * field: name or number, water, city or county, then the other fields
  * including the parameters. Then names starting with q, then parts of name,
  * water, city or county. Any other hit of q gets the last tier, all ignoring
- * case.
+ * case. With lang only the alternatives of that language count, see
+ * alternativesIn.
  */
-export function relevance(st: PegelonlineStation, q: string): number {
+export function relevance(
+  st: PegelonlineStation,
+  q: string,
+  lang?: string,
+): number {
+  const alt = (field: NamedField) => alternatives(st, field, lang) ?? [];
   const name = [st.shortname, st.longname];
-  const water = [
-    st.water.shortname,
-    st.water.longname,
-    ...(st.water_alternatives ?? []),
-  ];
-  const place = [
-    st.city,
-    st.kreis,
-    ...(st.city_alternatives ?? []),
-    ...(st.kreis_alternatives ?? []),
-  ];
+  const water = [st.water.shortname, st.water.longname, ...alt('water')];
+  const place = [st.city, st.kreis, ...alt('city'), ...alt('kreis')];
   const other = [
     st.agency,
     st.land,
     st.country,
     st.einzugsgebiet,
-    ...(st.land_alternatives ?? []),
-    ...(st.country_alternatives ?? []),
-    ...(st.einzugsgebiet_alternatives ?? []),
+    ...alt('land'),
+    ...alt('country'),
+    ...alt('einzugsgebiet'),
   ];
   const tiers = [
     () => equal([...name, st.number, st.uuid], q),
@@ -56,9 +59,10 @@ export function relevance(st: PegelonlineStation, q: string): number {
 export function sortByRelevance(
   stations: PegelonlineStation[],
   q: string,
+  lang?: string,
 ): PegelonlineStation[] {
   return stations
-    .map((station) => ({ station, tier: relevance(station, q) }))
+    .map((station) => ({ station, tier: relevance(station, q, lang) }))
     .sort((a, b) => a.tier - b.tier)
     .map(({ station }) => station);
 }

@@ -12,7 +12,54 @@ type StationFilter = (
   station: PegelonlineStation,
   term: string,
   compare: Compare,
+  lang: string | undefined,
 ) => boolean;
+
+/** The fields with alternative names, stored as <field>_alternatives and <field>_names. */
+export type NamedField =
+  'water' | 'country' | 'land' | 'kreis' | 'city' | 'einzugsgebiet';
+
+// the language without region, e.g. de for de-CH
+const baseLanguage = (lang: string) => lang.split('-')[0].toLowerCase();
+
+/**
+ * The alternatives that count for the language: the names of the language
+ * (without region, de also takes de-AT and de-CH) and those that are under no
+ * language in names, like transcriptions and abbreviations. Without names all
+ * of them have no language, without lang all count.
+ */
+export function alternativesIn(
+  alternatives: string[] | undefined,
+  names: Record<string, string> | undefined,
+  lang: string | undefined,
+): string[] | undefined {
+  if (!lang || !alternatives) {
+    return alternatives;
+  }
+  const named = Object.entries(names ?? {});
+  const base = baseLanguage(lang);
+  const inLanguage = new Set(
+    named.filter(([l]) => baseLanguage(l) === base).map(([, name]) => name),
+  );
+  const withLanguage = new Set(named.map(([, name]) => name));
+  return alternatives.filter(
+    (alternative) =>
+      inLanguage.has(alternative) || !withLanguage.has(alternative),
+  );
+}
+
+/** The alternatives of the field that count for the language, see alternativesIn. */
+export function alternatives(
+  station: PegelonlineStation,
+  field: NamedField,
+  lang: string | undefined,
+): string[] | undefined {
+  return alternativesIn(
+    station[`${field}_alternatives`],
+    station[`${field}_names`],
+    lang,
+  );
+}
 
 /** Ignoring case, the term may be any part of the value. */
 export function matches(value: string | undefined, term: string): boolean {
@@ -63,27 +110,39 @@ export function isParameter(ts: PegelonlineTimeseries, term: string): boolean {
   );
 }
 
+const NAMED_FIELDS: NamedField[] = [
+  'water',
+  'country',
+  'land',
+  'kreis',
+  'city',
+  'einzugsgebiet',
+];
+
 // a record, so the compiler reports parameters added to StationQuery but missing here
 // TODO: add region filter
 const FILTERS: Record<FilterParameter, StationFilter> = {
   station: (st, term, compare) => compare(st.shortname, term),
   // the whole number, the numbers consist of digits only
   number: (st, term) => st.number === term,
-  gewaesser: (st, term, compare) =>
+  gewaesser: (st, term, compare, lang) =>
     compare(st.water.shortname, term) ||
     // whole name ignoring case, a substring match would let "Elbe" also find e.g. the Elbe-Havel-Kanal
     equalsIgnoringCase(st.water.longname, term) ||
-    anyOf(st.water_alternatives, term, compare),
+    anyOf(alternatives(st, 'water', lang), term, compare),
   agency: (st, term, compare) => compare(st.agency, term),
-  land: (st, term, compare) =>
-    compare(st.land, term) || anyOf(st.land_alternatives, term, compare),
-  country: (st, term, compare) =>
-    compare(st.country, term) || anyOf(st.country_alternatives, term, compare),
-  einzugsgebiet: (st, term, compare) =>
+  land: (st, term, compare, lang) =>
+    compare(st.land, term) ||
+    anyOf(alternatives(st, 'land', lang), term, compare),
+  country: (st, term, compare, lang) =>
+    compare(st.country, term) ||
+    anyOf(alternatives(st, 'country', lang), term, compare),
+  einzugsgebiet: (st, term, compare, lang) =>
     compare(st.einzugsgebiet, term) ||
-    anyOf(st.einzugsgebiet_alternatives, term, compare),
-  kreis: (st, term, compare) =>
-    compare(st.kreis, term) || anyOf(st.kreis_alternatives, term, compare),
+    anyOf(alternatives(st, 'einzugsgebiet', lang), term, compare),
+  kreis: (st, term, compare, lang) =>
+    compare(st.kreis, term) ||
+    anyOf(alternatives(st, 'kreis', lang), term, compare),
   parameter: (st, term) => st.timeseries.some((ts) => isParameter(ts, term)),
   bbox: (st, term) => {
     const bbox = parseBbox(term);
@@ -102,7 +161,7 @@ const FILTERS: Record<FilterParameter, StationFilter> = {
     );
   },
   // the fields of all other parameters except bbox, plus uuid, longname and city, all as substrings, also with match=exact
-  q: (st, term) =>
+  q: (st, term, _, lang) =>
     [
       st.uuid,
       st.number,
@@ -122,14 +181,9 @@ const FILTERS: Record<FilterParameter, StationFilter> = {
         ts.longname.replaceAll('_', ' '),
       ]),
     ].some((value) => matches(value, term)) ||
-    [
-      st.water_alternatives,
-      st.country_alternatives,
-      st.land_alternatives,
-      st.kreis_alternatives,
-      st.city_alternatives,
-      st.einzugsgebiet_alternatives,
-    ].some((alternatives) => matchesAny(alternatives, term)),
+    NAMED_FIELDS.some((field) =>
+      matchesAny(alternatives(st, field, lang), term),
+    ),
 };
 
 /** The stations matching all given parameters, in their stored order. */
@@ -142,7 +196,10 @@ export function searchStations(
   const filters = (Object.keys(FILTERS) as FilterParameter[]).flatMap((key) => {
     const term = query[key];
     return term
-      ? [(st: PegelonlineStation) => FILTERS[key](st, term, compare)]
+      ? [
+          (st: PegelonlineStation) =>
+            FILTERS[key](st, term, compare, query.lang),
+        ]
       : [];
   });
   return stations.filter((st) => filters.every((filter) => filter(st)));

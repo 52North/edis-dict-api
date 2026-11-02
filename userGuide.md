@@ -104,6 +104,13 @@ Innerhalb einer Stufe bleibt die Reihenfolge von Pegelonline. Die Treffermenge �
 
 liefert zuerst die Pegel in Sachsen, dann SACHSENHAUSEN und erst danach die Pegel in Niedersachsen und Sachsen-Anhalt. Ohne `sort` stehen die Pegel in Niedersachsen vorn.
 
+### lang
+
+Mit `lang` vergleichen `gewaesser`, `land`, `country`, `einzugsgebiet`, `kreis` und `q` nur noch mit dem deutschen Namen, den Namen dieser Sprache (siehe [Sprachen](#sprachen)) und den Benennungen ohne Sprache wie Umschreibungen („Koeln“) und Kürzeln. Die Region zählt nicht: `de` umfasst `de-AT` und `de-CH`, Groß- und Kleinschreibung spielen keine Rolle. Ohne `lang` zählen wie bisher alle Sprachen. Andere Angaben als eine Sprachkennung wie `en` oder `de-CH` beantwortet die API mit HTTP 400, eine Sprache ohne Namen ist kein Fehler.
+> http://localhost:3000/search?land=Bavaria&lang=en
+
+findet die Pegel in Bayern, `land=Bawaria&lang=en` (polnisch) keinen. `lang` allein ist kein Suchkriterium, `/search?lang=en` liefert wie `/search` alle Stationen.
+
 ## Werte der Suchparameter
 
 Liefert die sortierten Werte eines Suchparameters über alle Stationen, z. B. für Auswahllisten oder eine Autovervollständigung. Möglich sind `station`, `number`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet`, `kreis` und `parameter`. Fehlt `parameter` oder ist er nicht dabei, antwortet die API mit HTTP 400.
@@ -151,6 +158,8 @@ Gewässer und Einzugsgebiete bekommen ihre Benennungen aus der Suchwortliste. De
   …
 }
 ```
+
+Auf eine Sprache beschränken lässt sich die Suche mit [lang](#lang).
 
 ## Download über die Sensor Web API
 

@@ -59,6 +59,27 @@ describe('relevance', () => {
   });
 });
 
+describe('relevance with lang', () => {
+  const koeln = createStation({
+    shortname: 'PEGEL',
+    city: 'Köln',
+    city_alternatives: ['Koeln', 'Cologne', 'Keulen'],
+    city_names: { en: 'Cologne', nl: 'Keulen' },
+  });
+
+  it.each<[string, string, string | undefined, number]>([
+    ['a name of the language', 'cologne', 'en', 2],
+    ['any name without lang', 'keulen', undefined, 2],
+    ['an alternative without language', 'koeln', 'nl', 2],
+  ])('ranks %s as exact place', (_, q, lang, tier) => {
+    expect(relevance(koeln, q, lang)).toBe(tier);
+  });
+
+  it('ranks a name of another language as no hit', () => {
+    expect(relevance(koeln, 'keulen', 'en')).toBe(8);
+  });
+});
+
 describe('sortByRelevance', () => {
   it('keeps the order of stations of the same tier', () => {
     const stations = [

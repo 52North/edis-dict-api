@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import {
+  LANGUAGE_TAG,
   MATCH_MODES,
   parseBbox,
   SORT_MODES,
@@ -27,13 +28,15 @@ const PARAMETERS: Record<keyof StationQuery, true> = {
   q: true,
   match: true,
   sort: true,
+  lang: true,
 };
 const PARAMETER_NAMES = new Set(Object.keys(PARAMETERS));
 
 /**
  * Checks the parameters of /search before the filters run. Repeated parameters,
- * invalid bboxes and unknown match or sort modes are rejected with 400, unknown
- * parameters are only logged and passed on, the filters ignore them.
+ * invalid bboxes, unknown match or sort modes and languages of another form
+ * than e.g. en or de-CH are rejected with 400, unknown parameters are only
+ * logged and passed on, the filters ignore them.
  */
 @Injectable()
 export class StationQueryPipe implements PipeTransform<
@@ -73,6 +76,12 @@ export class StationQueryPipe implements PipeTransform<
     }
     if (query.sort && !SORT_MODES.includes(query.sort as string)) {
       throw new BadRequestException('Parameter sort must be relevance');
+    }
+    // an empty lang is not set, like an empty match
+    if (query.lang && !LANGUAGE_TAG.test(query.lang as string)) {
+      throw new BadRequestException(
+        'Parameter lang must be a language like en or de-CH',
+      );
     }
     return query as StationQuery;
   }

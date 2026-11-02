@@ -1,9 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 
-import { STATIONS } from '../../test/fixtures';
+import { createStation, STATIONS } from '../../test/fixtures';
 import { StationQuery } from '../query/station-query';
 import { StationStore } from './station-store';
 import { StationsService } from './stations.service';
+import { PegelonlineStation } from './station.model';
 
 describe('StationsService', () => {
   let service: StationsService;
@@ -174,6 +175,77 @@ describe('StationsService', () => {
     ],
   ])('sorts by relevance: %s', (_, query, expected) => {
     expect(search(query)).toEqual(expected);
+  });
+
+  describe('lang', () => {
+    // names as the harvest stores them, Koeln and SN without language
+    const LANG_STATIONS: PegelonlineStation[] = [
+      createStation({
+        uuid: 'koeln',
+        land: 'Nordrhein-Westfalen',
+        city: 'Köln',
+        city_alternatives: ['Koeln', 'Cologne', 'Keulen'],
+        city_names: { en: 'Cologne', nl: 'Keulen' },
+      }),
+      createStation({
+        uuid: 'dresden',
+        land: 'Sachsen',
+        land_alternatives: ['SN', 'Saxony', 'Saksonia'],
+        land_names: { en: 'Saxony', pl: 'Saksonia' },
+        water: { shortname: 'ELBE', longname: 'ELBE' },
+        water_alternatives: ['Elb', 'Elbe river'],
+        water_names: { en: 'Elbe river' },
+      }),
+    ];
+
+    const searchIn = (query: StationQuery) => {
+      const langService = new StationsService(
+        { getAll: () => LANG_STATIONS } as unknown as StationStore,
+        { get: () => 'http://pegelonline' } as unknown as ConfigService,
+      );
+      return langService.getStations(query).map((st) => st.uuid);
+    };
+
+    it.each<[string, StationQuery, string[]]>([
+      ['a name of the language', { land: 'Saxony', lang: 'en' }, ['dresden']],
+      ['no name of another language', { land: 'Saksonia', lang: 'en' }, []],
+      ['all languages without lang', { land: 'Saksonia' }, ['dresden']],
+      [
+        'the German value in any language',
+        { land: 'Sachsen', lang: 'en' },
+        ['dresden'],
+      ],
+      [
+        'an alternative without language',
+        { land: 'SN', lang: 'pl' },
+        ['dresden'],
+      ],
+      [
+        'a water by its name of the language',
+        { gewaesser: 'Elbe river', lang: 'en' },
+        ['dresden'],
+      ],
+      [
+        'no water by a name of another language',
+        { gewaesser: 'Elbe river', lang: 'de' },
+        [],
+      ],
+      ['q in the language', { q: 'Cologne', lang: 'en' }, ['koeln']],
+      ['q not in another language', { q: 'Cologne', lang: 'nl' }, []],
+      [
+        'q by an alternative without language',
+        { q: 'Koeln', lang: 'nl' },
+        ['koeln'],
+      ],
+      [
+        'with exact match',
+        { land: 'saxony', lang: 'en', match: 'exact' },
+        ['dresden'],
+      ],
+      ['everything with lang alone', { lang: 'en' }, ['koeln', 'dresden']],
+    ])('finds %s', (_, query, expected) => {
+      expect(searchIn(query)).toEqual(expected);
+    });
   });
 
   it('adds mqtt topics and pegelonline links to the response', () => {

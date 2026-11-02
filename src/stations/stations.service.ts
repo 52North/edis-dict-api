@@ -37,7 +37,7 @@ export class StationsService {
   getStations(query: StationQuery = {}): PegelonlineStation[] {
     const stations = searchStations(this.stationStore.getAll(), query);
     return query.sort === 'relevance' && query.q
-      ? sortByRelevance(stations, query.q)
+      ? sortByRelevance(stations, query.q, query.lang)
       : stations;
   }
 

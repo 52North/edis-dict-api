@@ -10,6 +10,7 @@ describe('validateConfig', () => {
   it('keeps valid urls and passes the other values through', () => {
     expect(validateConfig({ ...VALID, PORT: '3000' })).toEqual({
       ...VALID,
+      SENSORWEB_API_URL: '',
       PORT: '3000',
     });
   });
@@ -58,5 +59,38 @@ describe('validateConfig', () => {
     expect(() => validateConfig({ ...VALID, NOMINATIM_BASE_URL: url })).toThrow(
       `NOMINATIM_BASE_URL ${message}`,
     );
+  });
+
+  describe('SENSORWEB_API_URL', () => {
+    it.each([
+      ['missing', undefined],
+      ['empty', ''],
+      ['blank', '  '],
+    ])('is optional and empty if %s', (_, url) => {
+      expect(
+        validateConfig({ ...VALID, SENSORWEB_API_URL: url }).SENSORWEB_API_URL,
+      ).toBe('');
+    });
+
+    it.each([
+      [
+        'https://sensorweb.example.org/api',
+        'https://sensorweb.example.org/api/',
+      ],
+      [
+        ' https://sensorweb.example.org/api/ ',
+        'https://sensorweb.example.org/api/',
+      ],
+    ])('adds the trailing slash to %p', (url, expected) => {
+      expect(
+        validateConfig({ ...VALID, SENSORWEB_API_URL: url }).SENSORWEB_API_URL,
+      ).toBe(expected);
+    });
+
+    it('fails if it is set but no http or https url', () => {
+      expect(() =>
+        validateConfig({ ...VALID, SENSORWEB_API_URL: 'sensorweb:8080' }),
+      ).toThrow('SENSORWEB_API_URL is not an http or https url');
+    });
   });
 });

@@ -26,6 +26,7 @@ import { PegelonlineStation } from '../stations/station.model';
 import { DrainageAreasService } from './drainage-areas.service';
 import { GeocodingService } from './geocoding.service';
 import { HarvestService } from './harvest.service';
+import { SensorWebService } from './sensorweb.service';
 
 const square = (
   minLon: number,
@@ -146,6 +147,10 @@ describe('HarvestService', () => {
         configService,
       ),
       new DrainageAreasService(configService),
+      new SensorWebService(
+        httpService as unknown as HttpService,
+        configService,
+      ),
       searchTermListService as unknown as SearchTermListService,
       store,
       configService,
@@ -492,6 +497,104 @@ describe('HarvestService', () => {
       'herbrum',
     ]);
     expect(existsSync(`${stationsFile()}.tmp`)).toBe(false);
+  });
+
+  describe('Sensor Web links', () => {
+    const SENSORWEB = 'http://sensorweb/api/';
+    const link = (id: string) => `${SENSORWEB}datasets/${id}/data.csv`;
+
+    // the features of the Sensor Web API are the stations, its datasets the given ids by domainId
+    const harvestWithSensorWeb = (
+      stations: PegelonlineStation[],
+      datasets: Record<string, string>,
+      available = true,
+    ) => {
+      httpService.get.mockImplementation((url: string) => {
+        if (!url.startsWith(SENSORWEB)) {
+          return of({ data: stations });
+        }
+        if (!available) {
+          return throwError(() => new Error('unavailable'));
+        }
+        return of({
+          data: url.endsWith('features')
+            ? stations.map((st) => ({
+                id: `f-${st.uuid}`,
+                properties: { domainId: st.uuid },
+              }))
+            : Object.entries(datasets).map(([domainId, id]) => ({
+                id,
+                domainId,
+              })),
+        });
+      });
+      nominatimService.getAdressData.mockReturnValue(of(NOT_FOUND));
+      service['fetchStations']();
+    };
+
+    const storedLinks = () =>
+      storedStations().map((st) =>
+        st.timeseries.map((ts) => [ts.shortname, ts.sensorweblink]),
+      );
+
+    beforeEach(() => createService({ SENSORWEB_API_URL: SENSORWEB }));
+
+    it('adds the download links of the datasets to the timeseries', () => {
+      harvestWithSensorWeb([fresh('koeln')], { koeln_W: '7' });
+
+      expect(storedLinks()).toEqual([
+        [
+          ['W', link('7')],
+          ['WT', undefined],
+        ],
+      ]);
+    });
+
+    it('keeps the previous links of the same api if the Sensor Web API fails', () => {
+      const previous = structuredClone(STATIONS);
+      previous[0].timeseries[0].sensorweblink = link('7');
+      previous[0].timeseries[1].sensorweblink =
+        'http://other/api/datasets/8/data.csv';
+      store['stations'] = previous;
+
+      harvestWithSensorWeb([fresh('koeln')], {}, false);
+
+      expect(storedLinks()).toEqual([
+        [
+          ['W', link('7')],
+          ['WT', undefined],
+        ],
+      ]);
+    });
+
+    it('drops the links of timeseries without dataset', () => {
+      const previous = structuredClone(STATIONS);
+      previous[0].timeseries[0].sensorweblink = link('7');
+      store['stations'] = previous;
+
+      harvestWithSensorWeb([fresh('koeln')], {});
+
+      expect(storedLinks()).toEqual([
+        [
+          ['W', undefined],
+          ['WT', undefined],
+        ],
+      ]);
+    });
+
+    it('requests no Sensor Web API without SENSORWEB_API_URL', () => {
+      createService();
+
+      harvestWithSensorWeb([fresh('koeln')], { koeln_W: '7' });
+
+      expect(httpService.get).toHaveBeenCalledTimes(1);
+      expect(storedLinks()).toEqual([
+        [
+          ['W', undefined],
+          ['WT', undefined],
+        ],
+      ]);
+    });
   });
 
   describe('lifecycle', () => {

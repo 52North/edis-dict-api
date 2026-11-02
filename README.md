@@ -53,6 +53,12 @@ cp stations.json stations.before.json
 npm run compare-stations -- stations.before.json stations.json
 ```
 
+## Sensor Web API
+
+With `SENSORWEB_API_URL` (a Dataset API v3 like gdi-sos, `.env.example` sets the test instance), the harvest adds a `sensorweblink` to each timeseries with a dataset there, which downloads its data as CSV (`…/datasets/{id}/data.csv`). It relies on the convention of gdi-sos: the `domainId` of a feature is the pegelonline uuid, the one of a dataset `{uuid}_{shortname}`. After enriching the stations, the harvest requests all features once and then the datasets of 50 stations per request, one after the other, each tried twice. If a request fails, its stations keep the links of the previous harvest. Without `SENSORWEB_API_URL` (or with an empty value) there are no links.
+
+The `PROXY_*` settings apply to pegelonline and the Sensor Web API, not to Nominatim.
+
 ## Test
 
 ```bash

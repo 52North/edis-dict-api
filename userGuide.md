@@ -124,3 +124,22 @@ Mit `grouped=true` kommt je Wert ein Objekt mit seinen alternativen Benennungen.
   …
 ]
 ```
+
+## Download über die Sensor Web API
+
+Jede Zeitreihe, zu der die Sensor Web API (gdi-sos) ein Dataset hat, enthält einen `sensorweblink` zum Download ihrer Messwerte als CSV. Ohne weitere Angabe liefert er die letzte Woche, mit `timespan` als ISO-8601-Zeitraum den angegebenen:
+
+```json
+{
+  "shortname": "W",
+  "pegelonlinelink": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/8ba772ed-e45b-4be8-b91d-0c6c92de59e4/W/measurements.json",
+  "sensorweblink": "https://test.sensor-gdi.de/webservices/gis/gdi-sos/api/datasets/2629/data.csv",
+  …
+}
+```
+
+> https://test.sensor-gdi.de/webservices/gis/gdi-sos/api/datasets/2629/data.csv?timespan=PT24H/now
+
+> https://test.sensor-gdi.de/webservices/gis/gdi-sos/api/datasets/2629/data.csv?timespan=2026-11-01T00:00:00Z/2026-11-02T00:00:00Z
+
+Der Link fehlt bei Zeitreihen ohne Dataset in der Sensor Web API, vor allem bei Pegeln ohne Koordinaten, und ganz, wenn die Dict-API ohne Sensor Web API betrieben wird.

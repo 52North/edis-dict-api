@@ -40,7 +40,7 @@ export class PegelonlineComment {
 /**
  * A timeseries of a station from the pegelonline REST API v2. mqtttopic and
  * pegelonlinelink are only added for the response, see
- * StationsService.prepareResponse.
+ * StationsService.prepareResponse, the harvest stores sensorweblink.
  */
 export class PegelonlineTimeseries {
   @ApiProperty({
@@ -70,6 +70,13 @@ export class PegelonlineTimeseries {
       'Link zu den Messwerten, bei Vorhersagen zur aktuellen Vorhersage',
   })
   pegelonlinelink: string;
+
+  @ApiProperty({
+    description:
+      'Link zum Download der Messwerte als CSV über die Sensor Web API, ohne <code>timespan</code> die letzte Woche, mit <code>timespan</code> als ISO-8601-Zeitraum der angegebene (z.B. <code>?timespan=PT24H/now</code>); fehlt bei Zeitreihen ohne Dataset in der Sensor Web API',
+    required: false,
+  })
+  sensorweblink?: string;
 
   @ApiProperty({
     description: 'Abstand der Messwerte in Minuten',

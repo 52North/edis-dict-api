@@ -200,4 +200,18 @@ describe('StationsService', () => {
     expect(response.stations[0].timeseries[2].shortname).toBe('WV');
     expect(response.stations[0].timeseries[2]).not.toHaveProperty('mqtttopic');
   });
+
+  it('passes the stored Sensor Web link of a timeseries on', () => {
+    const koeln = structuredClone(STATIONS[0]);
+    koeln.timeseries[0].sensorweblink = 'http://sensorweb/datasets/7/data.csv';
+
+    const response = service.prepareResponse([koeln]);
+
+    expect(response.stations[0].timeseries[0].sensorweblink).toBe(
+      'http://sensorweb/datasets/7/data.csv',
+    );
+    expect(response.stations[0].timeseries[1]).not.toHaveProperty(
+      'sensorweblink',
+    );
+  });
 });

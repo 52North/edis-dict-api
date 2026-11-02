@@ -28,6 +28,8 @@ import {
 } from '../stations/station.model';
 import { DrainageAreasService } from './drainage-areas.service';
 import { GeocodingService, StationAddress } from './geocoding.service';
+import { harvestProxy } from './proxy';
+import { SensorWebLinks, SensorWebService } from './sensorweb.service';
 
 // the station list with all timeseries is large, so allow more time than for nominatim
 const PEGELONLINE_TIMEOUT_MS = 60000;
@@ -40,7 +42,8 @@ type DeliveredTimeseries = PegelonlineTimeseries & {
 
 /**
  * Fetches the stations from pegelonline and enriches them with address,
- * synonyms and drainage area. Runs on CRON_TIME_FOR_DATA_ENLARGING and, with
+ * synonyms and drainage area, with SENSORWEB_API_URL also their timeseries
+ * with download links. Runs on CRON_TIME_FOR_DATA_ENLARGING and, with
  * RUN_DATA_ENLARGING_ON_INIT, on start. Stations without coordinates get
  * neither address nor drainage area, the enriched stations replace the stored
  * ones at the end.
@@ -52,11 +55,6 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
   private readonly pegelonlineBaseUrl = this.configService.get<string>(
     'PEGELONLINE_BASE_URL',
   );
-
-  private readonly proxyProtocol =
-    this.configService.get<string>('PROXY_PROTOCOL');
-  private readonly proxyHost = this.configService.get<string>('PROXY_HOST');
-  private readonly proxyPort = this.configService.get<number>('PROXY_PORT');
 
   private readonly runDataEnlargingOnInit =
     this.configService.get('RUN_DATA_ENLARGING_ON_INIT', 'true') === 'true';
@@ -77,6 +75,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     private readonly httpService: HttpService,
     private readonly geocodingSrvc: GeocodingService,
     private readonly drainageAreasSrvc: DrainageAreasService,
+    private readonly sensorWebSrvc: SensorWebService,
     private readonly searchTermListSrvc: SearchTermListService,
     private readonly stationStore: StationStore,
     private readonly configService: ConfigService,
@@ -102,7 +101,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Runs one harvest, skipped while the previous one is still running. The
-   * PROXY_* settings only apply to the request to pegelonline.
+   * PROXY_* settings apply to pegelonline and the Sensor Web API.
    */
   private fetchStations() {
     if (this.harvestRunning) {
@@ -113,12 +112,9 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
     this.failedGeocodings = 0;
     this.logger.log(`Start fetching stations`);
     const config: AxiosRequestConfig = { timeout: PEGELONLINE_TIMEOUT_MS };
-    if (this.proxyProtocol && this.proxyHost && this.proxyPort) {
-      config.proxy = {
-        protocol: this.proxyProtocol,
-        host: this.proxyHost,
-        port: this.proxyPort,
-      };
+    const proxy = harvestProxy(this.configService);
+    if (proxy) {
+      config.proxy = proxy;
     }
     const url = `${this.pegelonlineBaseUrl}/stations.json?includeTimeseries=true&includeForecastTimeseries=true`;
     this.httpService
@@ -135,6 +131,7 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
           // keeps the order of pegelonline
           return forkJoin(stations.map((st) => this.enrichStation(st)));
         }),
+        mergeMap((stations) => this.addSensorWebLinks(stations)),
         finalize(() => {
           this.drainageAreasSrvc.release();
           this.harvestRunning = false;
@@ -213,6 +210,54 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
         return station;
       }),
     );
+  }
+
+  /**
+   * Adds the link to the data in the Sensor Web API to the timeseries with a
+   * dataset there. Stations whose request failed keep the links of the
+   * previous harvest, if they lead to the same Sensor Web API.
+   */
+  private addSensorWebLinks(
+    stations: PegelonlineStation[],
+  ): Observable<PegelonlineStation[]> {
+    if (!this.sensorWebSrvc.isEnabled()) {
+      return of(stations);
+    }
+    return this.sensorWebSrvc.findLinks(stations.map((st) => st.uuid)).pipe(
+      map((result) => {
+        stations.forEach((st) => this.setSensorWebLinks(st, result));
+        const timeseries = stations.flatMap((st) => st.timeseries);
+        const linked = timeseries.filter((ts) => ts.sensorweblink).length;
+        this.logger.log(
+          `Found Sensor Web links for ${linked} of ${timeseries.length} timeseries`,
+        );
+        if (result.failed.size) {
+          this.logger.warn(
+            `Sensor Web API failed for ${result.failed.size} stations, keeping their previous links`,
+          );
+        }
+        return stations;
+      }),
+    );
+  }
+
+  private setSensorWebLinks(
+    station: PegelonlineStation,
+    { links, failed }: SensorWebLinks,
+  ) {
+    const previous = failed.has(station.uuid)
+      ? this.stationStore.get(station.uuid)
+      : undefined;
+    // copies, the delivered timeseries stay as they are
+    station.timeseries = station.timeseries.map((ts) => {
+      const link = failed.has(station.uuid)
+        ? previous?.timeseries.find((p) => p.shortname === ts.shortname)
+            ?.sensorweblink
+        : links.get(`${station.uuid}_${ts.shortname}`);
+      return link && this.sensorWebSrvc.isOwnLink(link)
+        ? { ...ts, sensorweblink: link }
+        : ts;
+    });
   }
 
   /**

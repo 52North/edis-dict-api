@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DrainageAreasService } from './harvest/drainage-areas.service';
 import { GeocodingService } from './harvest/geocoding.service';
 import { HarvestService } from './harvest/harvest.service';
+import { SensorWebService } from './harvest/sensorweb.service';
 import { NominatimService } from './nominatim/nominatim.service';
 import { OptionsController } from './options/options.controller';
 import { QueryController } from './query/query.controller';
@@ -16,7 +17,7 @@ import { validateConfig } from './validate-config';
 
 /**
  * Limits the concurrent outgoing requests of the shared HttpService, which the
- * harvest uses for pegelonline and nominatim, to MAX_REQUESTS_COUNT (99 if
+ * harvest uses for pegelonline, nominatim and the Sensor Web API, to MAX_REQUESTS_COUNT (99 if
  * unset, .env.example sets 5).
  */
 @Module({
@@ -33,6 +34,7 @@ import { validateConfig } from './validate-config';
     HarvestService,
     GeocodingService,
     DrainageAreasService,
+    SensorWebService,
     NominatimService,
     SearchTermListService,
   ],

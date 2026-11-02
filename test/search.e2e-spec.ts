@@ -293,4 +293,47 @@ describe('Search API (e2e)', () => {
     expect(schemas.PegelonlineTimeseries.required).toContain('pegelonlinelink');
     expect(schemas.PegelonlineTimeseries.required).not.toContain('mqtttopic');
   });
+
+  it('describes the Sensor Web link of a timeseries as optional', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const schemas = document.components?.schemas as Record<
+      string,
+      SchemaObject
+    >;
+
+    expect(schemas.PegelonlineTimeseries.properties).toHaveProperty(
+      'sensorweblink',
+    );
+    expect(schemas.PegelonlineTimeseries.required).not.toContain(
+      'sensorweblink',
+    );
+  });
+
+  it('returns the stored Sensor Web links of the timeseries', async () => {
+    const store = app.get(StationStore);
+    const stations = store['stations'];
+    const linked = structuredClone(stations);
+    linked[0].timeseries[0].sensorweblink =
+      'http://sensorweb/api/datasets/7/data.csv';
+    store['stations'] = linked;
+
+    try {
+      const res = await request(app.getHttpServer())
+        .get('/search')
+        .query({ station: linked[0].shortname, match: 'exact' })
+        .expect(200);
+
+      expect(res.body.stations[0].timeseries[0].sensorweblink).toBe(
+        'http://sensorweb/api/datasets/7/data.csv',
+      );
+      expect(res.body.stations[0].timeseries[1]).not.toHaveProperty(
+        'sensorweblink',
+      );
+    } finally {
+      store['stations'] = stations;
+    }
+  });
 });

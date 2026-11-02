@@ -4,29 +4,53 @@
  * instead of failing every request of the harvest. The nominatim url gets a
  * missing trailing slash and the pegelonline url loses it, as NominatimService
  * appends "reverse?…" and HarvestService and StationsService append
- * "/stations…".
+ * "/stations…". SENSORWEB_API_URL is optional and empty if unset, if set it
+ * has to be valid and gets a missing trailing slash, as SensorWebService
+ * appends "features" and "datasets…".
  */
 export function validateConfig(
   config: Record<string, unknown>,
 ): Record<string, unknown> {
   const pegelonlineBaseUrl = requireHttpUrl(config, 'PEGELONLINE_BASE_URL');
   const nominatimBaseUrl = requireHttpUrl(config, 'NOMINATIM_BASE_URL');
+  const sensorWebApiUrl = optionalHttpUrl(config, 'SENSORWEB_API_URL');
   return {
     // ConfigModule assigns only the returned values to process.env
     ...config,
     PEGELONLINE_BASE_URL: pegelonlineBaseUrl.replace(/\/+$/, ''),
-    NOMINATIM_BASE_URL: nominatimBaseUrl.endsWith('/')
-      ? nominatimBaseUrl
-      : `${nominatimBaseUrl}/`,
+    NOMINATIM_BASE_URL: withSlash(nominatimBaseUrl),
+    // empty if unset or blank, undefined would become the string "undefined" in process.env
+    SENSORWEB_API_URL: sensorWebApiUrl ? withSlash(sensorWebApiUrl) : '',
   };
 }
 
-function requireHttpUrl(config: Record<string, unknown>, key: string): string {
+function withSlash(url: string): string {
+  return url.endsWith('/') ? url : `${url}/`;
+}
+
+function trimmed(config: Record<string, unknown>, key: string): string {
   const value = config[key];
-  const url = typeof value === 'string' ? value.trim() : '';
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function requireHttpUrl(config: Record<string, unknown>, key: string): string {
+  const url = trimmed(config, key);
   if (!url) {
     throw new Error(`${key} is not set`);
   }
+  return checkHttpUrl(key, url);
+}
+
+/** The url if set, undefined if missing or blank. */
+function optionalHttpUrl(
+  config: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const url = trimmed(config, key);
+  return url ? checkHttpUrl(key, url) : undefined;
+}
+
+function checkHttpUrl(key: string, url: string): string {
   let protocol: string;
   try {
     protocol = new URL(url).protocol;

@@ -14,11 +14,13 @@ import { configureApp } from './configure-app';
 
 // markdown for the Swagger UI, the ODbL requires the attribution of the OpenStreetMap data
 const DESCRIPTION = [
-  'Durchsucht die Stationen von [Pegelonline](https://www.pegelonline.wsv.de) und ergänzt sie um Adresse, alternative Benennungen und Einzugsgebiet.',
+  'Durchsucht die Stationen von [Pegelonline](https://www.pegelonline.wsv.de) und ergänzt sie um Adresse, alternative Benennungen mit ihrer Sprache, Einzugsgebiet und Links zum Download der Messwerte über die Sensor Web API. Liefert die Werte der Suchparameter für Auswahllisten und, passend zu einer Suche, mit Anzahl für eine Facettensuche.',
   '',
   'Quellen:',
   '- Stationen und Zeitreihen: Pegelonline der Wasserstraßen- und Schifffahrtsverwaltung des Bundes (WSV), [Datenlizenz Deutschland – Zero – Version 2.0](https://www.govdata.de/dl-de/zero-2-0)',
-  '- Adressen (Land, Bundesland, Kreis, Stadt): © [OpenStreetMap-Mitwirkende](https://www.openstreetmap.org/copyright), [ODbL](https://opendatacommons.org/licenses/odbl/), abgefragt über Nominatim',
+  '- Adressen (Land, Bundesland, Kreis, Stadt) und ihre Namen in weiteren Sprachen: © [OpenStreetMap-Mitwirkende](https://www.openstreetmap.org/copyright), [ODbL](https://opendatacommons.org/licenses/odbl/), abgefragt über Nominatim',
+  '- Synonyme und Übersetzungen von Gewässern, Einzugsgebieten und Kreisen: Suchwortliste der Dict-API',
+  '- Download-Links: Sensor Web API (Dataset API, z.B. gdi-sos), nur wenn sie konfiguriert ist',
 ].join('\n');
 
 /**

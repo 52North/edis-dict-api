@@ -1,7 +1,9 @@
 # EDIS Dict-API
 
 - stellt die Pegelonline Stationen in aufbereiteter Form zur Verfügung
-- macht die Stationen mit verschiedenen Parametern durchsuchbar
+- macht die Stationen mit verschiedenen Parametern durchsuchbar, auch in einer bestimmten [Sprache](#sprachen)
+- liefert die Werte der Suchparameter für Auswahllisten und, passend zu einer Suche, als [Facetten](#facetten) mit Anzahl
+- verlinkt je Zeitreihe den [Download über die Sensor Web API](#download-über-die-sensor-web-api)
 - komprimiert Antworten ab 1 KB mit Brotli oder gzip, wenn der Client das per `Accept-Encoding` anbietet (Browser tun das von selbst)
 
 ## Swagger-UI

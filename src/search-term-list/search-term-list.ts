@@ -11,10 +11,14 @@ interface ListEntry {
   Synonyme?: string;
 }
 
+// the list has no language for its translations, they are almost all English
+const TRANSLATION_LANGUAGE = 'en';
+
 /**
  * Synonyms and translations from the search term list (SUCHWORTLISTE_FILE_PATH,
  * sheet Tabelle1), read once at start. Only the categories "Gewässer / Flüsse",
- * "Einzugsgebiete" and "Landkreis" are used.
+ * "Einzugsgebiete" and "Landkreis" are used. The first translation also counts
+ * as the English name, the other ones and the synonyms have no language.
  */
 @Injectable()
 export class SearchTermListService {
@@ -32,16 +36,12 @@ export class SearchTermListService {
 
   /** Synonyms, then translations of the water, undefined if the list has none. */
   getAlternativeGewaesser(gewaesser: string): string[] | undefined {
-    const match = this.searchTermList.find((e) => {
-      if (e.Suchwortkategorie === 'Gewässer / Flüsse') {
-        // terms are single quoted names, a substring match would e.g. find "DORTMUND-EMS-KANAL" for "EMS"
-        return (
-          e.Suchworte?.replaceAll('"', '').trim().toLocaleLowerCase() ===
-          gewaesser.toLocaleLowerCase()
-        );
-      }
-    });
-    return this.handleMatch(match);
+    return this.handleMatch(this.findGewaesser(gewaesser));
+  }
+
+  /** The English name of the water, undefined if the list has none. */
+  getGewaesserNames(gewaesser: string): Record<string, string> | undefined {
+    return this.names(gewaesser, this.findGewaesser(gewaesser));
   }
 
   /**
@@ -50,17 +50,15 @@ export class SearchTermListService {
    */
   getAlternativeEinzugsgebiete(einzugsgebiet?: string): string[] | undefined {
     if (!einzugsgebiet) return;
-    const match = this.searchTermList.find((e) => {
-      if (e.Suchwortkategorie === 'Einzugsgebiete') {
-        return (
-          !!e.Suchworte &&
-          e.Suchworte.toLocaleLowerCase().includes(
-            einzugsgebiet.toLocaleLowerCase(),
-          )
-        );
-      }
-    });
-    return this.handleMatch(match);
+    return this.handleMatch(this.findEinzugsgebiet(einzugsgebiet));
+  }
+
+  /** The English name of the drainage area, undefined if the list has none. */
+  getEinzugsgebietNames(
+    einzugsgebiet?: string,
+  ): Record<string, string> | undefined {
+    if (!einzugsgebiet) return;
+    return this.names(einzugsgebiet, this.findEinzugsgebiet(einzugsgebiet));
   }
 
   /**
@@ -80,6 +78,43 @@ export class SearchTermListService {
       }
     });
     return this.handleMatch(match);
+  }
+
+  private findGewaesser(gewaesser: string): ListEntry | undefined {
+    return this.searchTermList.find((e) => {
+      if (e.Suchwortkategorie === 'Gewässer / Flüsse') {
+        // terms are single quoted names, a substring match would e.g. find "DORTMUND-EMS-KANAL" for "EMS"
+        return (
+          e.Suchworte?.replaceAll('"', '').trim().toLocaleLowerCase() ===
+          gewaesser.toLocaleLowerCase()
+        );
+      }
+    });
+  }
+
+  private findEinzugsgebiet(einzugsgebiet: string): ListEntry | undefined {
+    return this.searchTermList.find((e) => {
+      if (e.Suchwortkategorie === 'Einzugsgebiete') {
+        return (
+          !!e.Suchworte &&
+          e.Suchworte.toLocaleLowerCase().includes(
+            einzugsgebiet.toLocaleLowerCase(),
+          )
+        );
+      }
+    });
+  }
+
+  /** The first translation as English name, unless it is the value itself. */
+  private names(
+    value: string,
+    match: ListEntry | undefined,
+  ): Record<string, string> | undefined {
+    const [name] = match ? this.getTranslations(match) : [];
+    if (!name || name.toLocaleLowerCase() === value.toLocaleLowerCase()) {
+      return undefined;
+    }
+    return { [TRANSLATION_LANGUAGE]: name };
   }
 
   /** So that e.g. "Landkreis Emsland" from nominatim matches "Emsland" in the list. */

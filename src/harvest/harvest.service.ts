@@ -160,6 +160,9 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
           this.searchTermListSrvc.getAlternativeGewaesser(
             station.water.longname,
           );
+        station.water_names = this.searchTermListSrvc.getGewaesserNames(
+          station.water.longname,
+        );
         this.logger.log(`Enlarging data for station ${station.longname}`);
         return station;
       }),
@@ -207,6 +210,8 @@ export class HarvestService implements OnModuleInit, OnModuleDestroy {
         station.einzugsgebiet = drainage;
         station.einzugsgebiet_alternatives =
           this.searchTermListSrvc.getAlternativeEinzugsgebiete(drainage);
+        station.einzugsgebiet_names =
+          this.searchTermListSrvc.getEinzugsgebietNames(drainage);
         return station;
       }),
     );

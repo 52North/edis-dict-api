@@ -138,7 +138,19 @@ Land, Bundesland, Kreis und Ort kommen auf Deutsch aus Nominatim. Ihre Namen in 
 }
 ```
 
-Gewässer und Einzugsgebiete haben noch keine Namen je Sprache.
+Gewässer und Einzugsgebiete bekommen ihre Benennungen aus der Suchwortliste. Deren erste Übersetzung steht als englischer Name in `water_names` bzw. `einzugsgebiet_names`, weitere Übersetzungen und Kürzel nur in den `*_alternatives`:
+
+```json
+{
+  "water": { "shortname": "RHEIN", "longname": "RHEIN" },
+  "water_alternatives": ["Rhine"],
+  "water_names": { "en": "Rhine" },
+  "einzugsgebiet": "Nordsee",
+  "einzugsgebiet_alternatives": ["North Sea", "German Ocean"],
+  "einzugsgebiet_names": { "en": "North Sea" },
+  …
+}
+```
 
 ## Download über die Sensor Web API
 

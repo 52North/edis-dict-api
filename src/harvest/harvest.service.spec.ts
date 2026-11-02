@@ -121,6 +121,8 @@ describe('HarvestService', () => {
     getAlternativeGewaesser: jest.fn(),
     getAlternativeKreise: jest.fn(),
     getAlternativeEinzugsgebiete: jest.fn(),
+    getGewaesserNames: jest.fn(),
+    getEinzugsgebietNames: jest.fn(),
   };
 
   const stationsFile = () => join(dir, 'stations.json');
@@ -180,6 +182,8 @@ describe('HarvestService', () => {
     searchTermListService.getAlternativeEinzugsgebiete.mockReturnValue(
       undefined,
     );
+    searchTermListService.getGewaesserNames.mockReturnValue(undefined);
+    searchTermListService.getEinzugsgebietNames.mockReturnValue(undefined);
     dir = mkdtempSync(join(tmpdir(), 'harvest-service-'));
     writeFileSync(
       join(dir, 'einzugsgebiete.geojson'),
@@ -196,7 +200,11 @@ describe('HarvestService', () => {
 
   it('enriches the stations with address, synonyms and drainage area', () => {
     searchTermListService.getAlternativeGewaesser.mockReturnValue(['Rhine']);
+    searchTermListService.getGewaesserNames.mockReturnValue({ en: 'Rhine' });
     searchTermListService.getAlternativeKreise.mockReturnValue(['K']);
+    searchTermListService.getEinzugsgebietNames.mockReturnValue({
+      en: 'Rhine basin',
+    });
 
     harvest([fresh('koeln')], (lang) =>
       of(
@@ -225,11 +233,19 @@ describe('HarvestService', () => {
         city_alternatives: ['Koeln', 'Cologne'],
         city_names: { en: 'Cologne', fr: 'Cologne' },
         water_alternatives: ['Rhine'],
+        water_names: { en: 'Rhine' },
         einzugsgebiet: 'Rhein',
+        einzugsgebiet_names: { en: 'Rhine basin' },
       }),
     ]);
     expect(searchTermListService.getAlternativeGewaesser).toHaveBeenCalledWith(
       'RHEIN',
+    );
+    expect(searchTermListService.getGewaesserNames).toHaveBeenCalledWith(
+      'RHEIN',
+    );
+    expect(searchTermListService.getEinzugsgebietNames).toHaveBeenCalledWith(
+      'Rhein',
     );
     expect(searchTermListService.getAlternativeKreise).toHaveBeenCalledWith(
       'Köln',
@@ -411,6 +427,10 @@ describe('HarvestService', () => {
 
   it('stores stations without coordinates without address and drainage area', () => {
     searchTermListService.getAlternativeGewaesser.mockReturnValue(['EHK']);
+    searchTermListService.getGewaesserNames.mockReturnValue({ en: 'EH Canal' });
+    searchTermListService.getEinzugsgebietNames.mockReturnValue({
+      en: 'Rhine basin',
+    });
 
     harvest([fresh('koeln'), fresh('rossdorf')], () => of(NOT_FOUND));
 
@@ -419,9 +439,11 @@ describe('HarvestService', () => {
       expect.objectContaining({
         uuid: 'rossdorf',
         water_alternatives: ['EHK'],
+        water_names: { en: 'EH Canal' },
       }),
     ]);
     expect(storedStations()[1].einzugsgebiet).toBeUndefined();
+    expect(storedStations()[1].einzugsgebiet_names).toBeUndefined();
     expect(
       nominatimService.getAdressData.mock.calls.map(([uuid]) => uuid),
     ).not.toContain('rossdorf');

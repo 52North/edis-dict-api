@@ -28,6 +28,8 @@ describe('SearchTermListService', () => {
     ['EMS', undefined],
     ['ODER', undefined],
     ['ELBE', ['Elb']],
+    // abbreviations, no translations
+    ['FULDA', ['Fuld']],
     ['UNBEKANNT', undefined],
   ])('finds the alternatives of the water %s', (water, expected) => {
     expect(service.getAlternativeGewaesser(water)).toEqual(expected);
@@ -48,9 +50,38 @@ describe('SearchTermListService', () => {
 
   it.each([
     ['Ostsee', ['Baltic Sea', 'baltic']],
+    ['Nordsee', ['North Sea', 'German Ocean']],
     ['Rhein', undefined],
     [undefined, undefined],
   ])('finds the alternatives of the drainage area %s', (area, expected) => {
     expect(service.getAlternativeEinzugsgebiete(area)).toEqual(expected);
   });
+
+  it.each([
+    ['RHEIN', { en: 'Rhine' }],
+    ['DONAU', { en: 'Danube' }],
+    ['BODENSEE', { en: 'Lake Constance' }],
+    // only synonyms, no translation
+    ['ELBE', undefined],
+    ['FULDA', undefined],
+    ['DORTMUND-EMS-KANAL', undefined],
+    ['UNBEKANNT', undefined],
+  ])(
+    'takes the first translation as English name of the water %s',
+    (water, expected) => {
+      expect(service.getGewaesserNames(water)).toEqual(expected);
+    },
+  );
+
+  it.each([
+    ['Ostsee', { en: 'Baltic Sea' }],
+    ['Nordsee', { en: 'North Sea' }],
+    ['Rhein', undefined],
+    [undefined, undefined],
+  ])(
+    'takes the first translation as English name of the drainage area %s',
+    (area, expected) => {
+      expect(service.getEinzugsgebietNames(area)).toEqual(expected);
+    },
+  );
 });

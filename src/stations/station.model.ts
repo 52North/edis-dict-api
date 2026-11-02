@@ -191,6 +191,16 @@ export class PegelonlineStation {
   water_alternatives?: string[];
 
   @ApiProperty({
+    description:
+      'Namen zum Gewässer je Sprache, derzeit nur Englisch: die erste Übersetzung aus der Suchwortliste; weitere Übersetzungen und Kürzel stehen nur in <code>water_alternatives</code>',
+    required: false,
+    type: Object,
+    additionalProperties: { type: 'string' },
+    example: { en: 'Rhine' },
+  })
+  water_names?: Record<string, string>;
+
+  @ApiProperty({
     description: 'Stadt - angereichert in der DICT-API',
     required: false,
   })
@@ -292,6 +302,16 @@ export class PegelonlineStation {
     required: false,
   })
   einzugsgebiet_alternatives?: string[];
+
+  @ApiProperty({
+    description:
+      'Namen zum Einzugsgebiet je Sprache, derzeit nur Englisch: die erste Übersetzung aus der Suchwortliste; weitere Übersetzungen und Kürzel stehen nur in <code>einzugsgebiet_alternatives</code>',
+    required: false,
+    type: Object,
+    additionalProperties: { type: 'string' },
+    example: { en: 'Baltic Sea' },
+  })
+  einzugsgebiet_names?: Record<string, string>;
 
   @ApiProperty({
     description: 'Zugehöriger mqtt topic für alle Messungen an der Station',

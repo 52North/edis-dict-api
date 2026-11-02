@@ -322,7 +322,14 @@ describe('Search API (e2e)', () => {
       SchemaObject
     >;
 
-    for (const field of ['country', 'land', 'kreis', 'city']) {
+    for (const field of [
+      'water',
+      'country',
+      'land',
+      'kreis',
+      'city',
+      'einzugsgebiet',
+    ]) {
       expect(
         schemas.PegelonlineStation.properties?.[`${field}_names`],
       ).toMatchObject({

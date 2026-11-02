@@ -157,6 +157,9 @@ const FILTERS: Record<FilterParameter, StationFilter> = {
   kreis: (st, term, compare, lang) =>
     compare(st.kreis, term) ||
     anyOf(alternatives(st, 'kreis', lang), term, compare),
+  ort: (st, term, compare, lang) =>
+    compare(st.city, term) ||
+    anyOf(alternatives(st, 'city', lang), term, compare),
   parameter: (st, term) => st.timeseries.some((ts) => isParameter(ts, term)),
   bbox: (st, term) => {
     const bbox = parseBbox(term);
@@ -174,7 +177,7 @@ const FILTERS: Record<FilterParameter, StationFilter> = {
       st.latitude <= maxLat
     );
   },
-  // the fields of all other parameters except bbox, plus uuid, longname and city, all as substrings, also with match=exact
+  // the fields of all other parameters except bbox, plus uuid and longname, all as substrings, also with match=exact
   q: (st, term, _, lang) =>
     [
       st.uuid,

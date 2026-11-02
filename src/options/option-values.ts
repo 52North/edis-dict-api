@@ -67,6 +67,7 @@ export const OPTION_GROUPS: Record<
   agency: (st) => [{ value: st.agency }],
   gewaesser: (st, lang) => named(st, st.water.shortname, 'water', lang),
   kreis: (st, lang) => named(st, st.kreis, 'kreis', lang),
+  ort: (st, lang) => named(st, st.city, 'city', lang),
   land: (st, lang) => named(st, st.land, 'land', lang),
   country: (st, lang) => named(st, st.country, 'country', lang),
   einzugsgebiet: (st, lang) =>

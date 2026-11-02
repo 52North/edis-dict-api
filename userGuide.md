@@ -15,7 +15,7 @@ Suche auf der Liste der Pegelonline Stationen. Bei Angabe mehrerer Parameter wer
 
 Die Textparameter vergleichen ohne Groß- und Kleinschreibung und finden auch Teile eines Namens, mit `match=exact` nur ganze Namen (siehe [match](#match)).
 
-Für einige Stationen liefert Pegelonline keine Koordinaten. Sie haben dann weder `latitude`/`longitude` noch Adresse und Einzugsgebiet, deshalb finden `land`, `kreis`, `country`, `einzugsgebiet` und `bbox` sie nicht.
+Für einige Stationen liefert Pegelonline keine Koordinaten. Sie haben dann weder `latitude`/`longitude` noch Adresse und Einzugsgebiet, deshalb finden `land`, `kreis`, `ort`, `country`, `einzugsgebiet` und `bbox` sie nicht.
 
 ### station
 
@@ -57,6 +57,11 @@ Suche per String matching nach Stationen im angegebenen Einzugsgebiet
 Suche per String matching nach Stationen im angegebenen Landkreis
 > http://localhost:3000/search?kreis=emsland
 
+### ort
+
+Suche per String matching nach Stationen im angegebenen Ort. Das ist die Stadt aus Nominatim, ohne Stadt die Ortschaft, das Dorf oder die Gemeinde.
+> http://localhost:3000/search?ort=köln
+
 ### parameter
 
 Suche nach Stationen mit dem angegebenen Messparameter, über das Kürzel (z.B. `WT`) oder den ganzen Namen ohne den Zusatz „Rohdaten“ (z.B. `Wassertemperatur`). Groß- und Kleinschreibung spielen keine Rolle, Teile eines Namens treffen nicht.
@@ -77,7 +82,7 @@ Allgemeiner Suchparameter, durch den alle vorhergehenden Parameter per String ma
 
 ### match
 
-Legt fest, wie `station`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet` und `kreis` vergleichen. Mit `contains` (Standard) finden sie auch Teile eines Namens, `land=Sachsen` also auch Niedersachsen und Sachsen-Anhalt. Mit `exact` trifft nur der ganze Name oder eine ganze alternative Benennung, weiterhin ohne Groß- und Kleinschreibung. `q`, `number`, `parameter` und `bbox` bleiben unverändert. Andere Werte als `contains` und `exact` beantwortet die API mit HTTP 400.
+Legt fest, wie `station`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet`, `kreis` und `ort` vergleichen. Mit `contains` (Standard) finden sie auch Teile eines Namens, `land=Sachsen` also auch Niedersachsen und Sachsen-Anhalt. Mit `exact` trifft nur der ganze Name oder eine ganze alternative Benennung, weiterhin ohne Groß- und Kleinschreibung. `q`, `number`, `parameter` und `bbox` bleiben unverändert. Andere Werte als `contains` und `exact` beantwortet die API mit HTTP 400.
 > http://localhost:3000/search?land=Sachsen&match=exact
 
 Auch Alternativen treffen nur ganz:
@@ -106,14 +111,14 @@ liefert zuerst die Pegel in Sachsen, dann SACHSENHAUSEN und erst danach die Pege
 
 ### lang
 
-Mit `lang` vergleichen `gewaesser`, `land`, `country`, `einzugsgebiet`, `kreis` und `q` nur noch mit dem deutschen Namen, den Namen dieser Sprache (siehe [Sprachen](#sprachen)) und den Benennungen ohne Sprache wie Umschreibungen („Koeln“) und Kürzeln. Die Region zählt nicht: `de` umfasst `de-AT` und `de-CH`, Groß- und Kleinschreibung spielen keine Rolle. Ohne `lang` zählen wie bisher alle Sprachen. Andere Angaben als eine Sprachkennung wie `en` oder `de-CH` beantwortet die API mit HTTP 400, eine Sprache ohne Namen ist kein Fehler.
+Mit `lang` vergleichen `gewaesser`, `land`, `country`, `einzugsgebiet`, `kreis`, `ort` und `q` nur noch mit dem deutschen Namen, den Namen dieser Sprache (siehe [Sprachen](#sprachen)) und den Benennungen ohne Sprache wie Umschreibungen („Koeln“) und Kürzeln. Die Region zählt nicht: `de` umfasst `de-AT` und `de-CH`, Groß- und Kleinschreibung spielen keine Rolle. Ohne `lang` zählen wie bisher alle Sprachen. Andere Angaben als eine Sprachkennung wie `en` oder `de-CH` beantwortet die API mit HTTP 400, eine Sprache ohne Namen ist kein Fehler.
 > http://localhost:3000/search?land=Bavaria&lang=en
 
 findet die Pegel in Bayern, `land=Bawaria&lang=en` (polnisch) keinen. `lang` allein ist kein Suchkriterium, `/search?lang=en` liefert wie `/search` alle Stationen.
 
 ## Werte der Suchparameter
 
-Liefert die sortierten Werte eines Suchparameters über alle Stationen, z. B. für Auswahllisten oder eine Autovervollständigung. Möglich sind `station`, `number`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet`, `kreis` und `parameter`. Fehlt `parameter` oder ist er nicht dabei, antwortet die API mit HTTP 400.
+Liefert die sortierten Werte eines Suchparameters über alle Stationen, z. B. für Auswahllisten oder eine Autovervollständigung. Möglich sind `station`, `number`, `gewaesser`, `agency`, `land`, `country`, `einzugsgebiet`, `kreis`, `ort` und `parameter`. Fehlt `parameter` oder ist er nicht dabei, antwortet die API mit HTTP 400.
 > http://localhost:3000/options?parameter=land
 
 Die Liste enthält auch die alternativen Benennungen, die die Suche ebenfalls findet, z. B. `Bavaria` neben `Bayern`.

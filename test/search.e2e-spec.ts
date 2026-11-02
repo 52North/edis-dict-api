@@ -415,6 +415,31 @@ describe('Search API (e2e)', () => {
     ).toMatchObject({ in: 'query', required: false });
   });
 
+  it('searches and lists places', async () => {
+    const search = await request(app.getHttpServer())
+      .get('/search')
+      .query({ ort: 'köln' })
+      .expect(200);
+    const facets = await request(app.getHttpServer())
+      .get('/facets')
+      .query({ fields: 'ort', land: 'Nordrhein-Westfalen', match: 'exact' })
+      .expect(200);
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+
+    expect(uuids(search)).toEqual(['koeln']);
+    expect(facets.body.facets.ort.values).toEqual([
+      { value: 'Köln', count: 1, alternatives: ['Koeln'], names: {} },
+    ]);
+    expect(
+      document.paths['/search']?.get?.parameters?.find(
+        (p) => 'name' in p && p.name === 'ort',
+      ),
+    ).toMatchObject({ in: 'query', required: false });
+  });
+
   it('lists the values of the fields among the hits, each without its own filter', async () => {
     const res = await request(app.getHttpServer())
       .get('/facets')

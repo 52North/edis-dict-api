@@ -23,6 +23,7 @@ describe('StationQueryPipe', () => {
     ['sort=relevance', { q: 'sachsen', sort: 'relevance' }],
     ['an empty sort', { q: 'sachsen', sort: '' }],
     ['a language', { land: 'Saxony', lang: 'en' }],
+    ['an ort', { ort: 'Köln' }],
     ['a language with region', { land: 'Saxony', lang: 'de-CH' }],
     ['a language in upper case', { land: 'Saxony', lang: 'EN' }],
     ['an empty lang', { land: 'Saxony', lang: '' }],
@@ -47,6 +48,7 @@ describe('StationQueryPipe', () => {
     ['a single letter as language', { lang: 'e' }],
     ['a language with underscore', { lang: 'de_CH' }],
     ['a repeated lang', { lang: ['en', 'de'] }],
+    ['a repeated ort', { ort: ['Köln', 'Bonn'] }],
   ])('rejects %s', (_, query) => {
     expect(() => pipe.transform(query)).toThrow(BadRequestException);
   });

@@ -33,6 +33,7 @@ describe('OptionsController', () => {
     ],
     ['gewaesser', ['DEK', 'EHK', 'ELBE', 'Elb', 'RHEIN', 'Rhine']],
     ['kreis', ['Dresden', 'Koeln', 'Köln', 'Landkreis Emsland']],
+    ['ort', ['Koeln', 'Köln']],
     [
       'land',
       ['Niedersachsen', 'Nordrhein-Westfalen', 'Sachsen', 'Sachsen-Anhalt'],
@@ -194,6 +195,12 @@ describe('OptionsController', () => {
         ),
       );
     });
+  });
+
+  it('groups the places with their alternatives', () => {
+    expect(grouped('ort')).toEqual([
+      { value: 'Köln', alternatives: ['Koeln'], names: {} },
+    ]);
   });
 
   it('lists the flat values with grouped=false', () => {

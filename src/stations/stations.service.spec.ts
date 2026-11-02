@@ -55,6 +55,12 @@ describe('StationsService', () => {
     ],
     ['land', { land: 'sachsen' }, ['herbrum', 'genthin', 'dresden']],
     ['kreis by alternative', { kreis: 'koeln' }, ['koeln']],
+    ['ort by part of the name', { ort: 'kö' }, ['koeln']],
+    ['ort by alternative', { ort: 'koeln' }, ['koeln']],
+    ['ort exactly', { ort: 'KÖLN', match: 'exact' }, ['koeln']],
+    ['ort exactly, not by part', { ort: 'kö', match: 'exact' }, []],
+    // Roßdorf has no coordinates and therefore no ort
+    ['ort without a station lacking it', { ort: 'rossdorf' }, []],
     ['country by alternative', { country: 'germany' }, ['koeln']],
     ['agency', { agency: 'dresden' }, ['dresden']],
     ['einzugsgebiet', { einzugsgebiet: 'rhein' }, ['koeln']],
@@ -231,6 +237,8 @@ describe('StationsService', () => {
         [],
       ],
       ['q in the language', { q: 'Cologne', lang: 'en' }, ['koeln']],
+      ['ort in the language', { ort: 'Cologne', lang: 'en' }, ['koeln']],
+      ['no ort in another language', { ort: 'Cologne', lang: 'nl' }, []],
       ['q not in another language', { q: 'Cologne', lang: 'nl' }, []],
       [
         'q by an alternative without language',

@@ -23,6 +23,7 @@ const PARAMETERS: Record<keyof StationQuery, true> = {
   country: true,
   einzugsgebiet: true,
   kreis: true,
+  ort: true,
   parameter: true,
   bbox: true,
   q: true,

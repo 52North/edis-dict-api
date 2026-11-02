@@ -46,6 +46,12 @@ export class StationQuery {
     description: 'Suche über einen Landkreis (z.B. <code>Emsland</code>)',
   })
   kreis?: string;
+  @ApiProperty({
+    required: false,
+    description:
+      'Suche über einen Ort, die Stadt aus Nominatim, ohne Stadt die Ortschaft, das Dorf oder die Gemeinde (z.B. <code>Köln</code>)',
+  })
+  ort?: string;
   // @ApiProperty({
   //   required: false,
   //   description: 'Suche über eine Region',
@@ -73,7 +79,7 @@ export class StationQuery {
     required: false,
     enum: ['contains', 'exact'],
     description:
-      'Vergleich für <code>station</code>, <code>gewaesser</code>, <code>agency</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code> und <code>kreis</code>: <code>contains</code> (Standard) findet auch Teile eines Namens, <code>exact</code> nur den ganzen Namen oder eine ganze alternative Benennung, beide ohne Groß- und Kleinschreibung (z.B. <code>land=Sachsen&match=exact</code> ohne Niedersachsen und Sachsen-Anhalt)',
+      'Vergleich für <code>station</code>, <code>gewaesser</code>, <code>agency</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code>, <code>kreis</code> und <code>ort</code>: <code>contains</code> (Standard) findet auch Teile eines Namens, <code>exact</code> nur den ganzen Namen oder eine ganze alternative Benennung, beide ohne Groß- und Kleinschreibung (z.B. <code>land=Sachsen&match=exact</code> ohne Niedersachsen und Sachsen-Anhalt)',
   })
   match?: 'contains' | 'exact';
   @ApiProperty({
@@ -86,7 +92,7 @@ export class StationQuery {
   @ApiProperty({
     required: false,
     description:
-      'Sprache der alternativen Benennungen für <code>gewaesser</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code>, <code>kreis</code> und <code>q</code>: Sie vergleichen dann nur mit dem deutschen Namen, den Namen dieser Sprache (ohne Region, <code>de</code> umfasst <code>de-AT</code> und <code>de-CH</code>) und den Benennungen ohne Sprache wie Umschreibungen und Kürzeln. Ohne <code>lang</code> zählen alle Sprachen (z.B. findet <code>land=Bavaria&lang=en</code> Bayern, <code>land=Bawaria&lang=en</code> nicht)',
+      'Sprache der alternativen Benennungen für <code>gewaesser</code>, <code>land</code>, <code>country</code>, <code>einzugsgebiet</code>, <code>kreis</code>, <code>ort</code> und <code>q</code>: Sie vergleichen dann nur mit dem deutschen Namen, den Namen dieser Sprache (ohne Region, <code>de</code> umfasst <code>de-AT</code> und <code>de-CH</code>) und den Benennungen ohne Sprache wie Umschreibungen und Kürzeln. Ohne <code>lang</code> zählen alle Sprachen (z.B. findet <code>land=Bavaria&lang=en</code> Bayern, <code>land=Bawaria&lang=en</code> nicht)',
   })
   lang?: string;
 }

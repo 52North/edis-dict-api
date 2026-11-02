@@ -131,6 +131,19 @@ describe('facets', () => {
     ]);
   });
 
+  it('lists the places among the hits', () => {
+    const result = facets(
+      STATIONS,
+      { land: 'Nordrhein-Westfalen', match: 'exact' },
+      ['ort'],
+    );
+
+    expect(result.facets.ort).toEqual({
+      values: [{ value: 'Köln', count: 1, alternatives: ['Koeln'], names: {} }],
+      missing: 0,
+    });
+  });
+
   it('lists only the requested fields', () => {
     expect(Object.keys(facets(STATIONS, {}, ['kreis', 'land']).facets)).toEqual(
       ['kreis', 'land'],

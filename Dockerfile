@@ -1,4 +1,4 @@
-FROM node:24-slim AS build
+FROM node:24.22.2-slim AS build
 
 WORKDIR /src
 
@@ -10,7 +10,7 @@ RUN npm ci
 COPY . .
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24-slim
+FROM node:24.22.2-slim
 
 WORKDIR /app
 # the harvest writes stations.json via a temporary file in this directory

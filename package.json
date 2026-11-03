@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "scripts": {
     "build": "nest build",
     "clean": "rimraf ./dist",

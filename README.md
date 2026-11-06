@@ -7,6 +7,8 @@ An api, which consumes the pegelonline api and extends the stations with additio
 
 ## Installation
 
+Requires Node.js >= 24.22.2.
+
 ```bash
 $ npm install
 $ cp .env.example .env

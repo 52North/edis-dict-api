@@ -7,21 +7,23 @@ An api, which consumes the pegelonline api and extends the stations with additio
 
 ## Installation
 
+Requires Node.js >= 24.22.2.
+
 ```bash
-$ pnpm install
+$ npm install
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ pnpm run start
+$ npm run start
 
 # watch mode
-$ pnpm run start:dev
+$ npm run start:dev
 
 # production mode
-$ pnpm run start:prod
+$ npm run start:prod
 ```
 
 ## Docker

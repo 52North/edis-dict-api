@@ -1,16 +1,14 @@
-FROM node:18-slim AS base
-
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
-RUN corepack enable
+FROM node:24.22.2-slim AS build
 
 COPY . /src
 WORKDIR /src
 
-RUN pnpm install
-RUN pnpm run build
+RUN npm ci
+RUN npm run build
+RUN npm prune --omit=dev
 
-FROM base
+FROM node:24.22.2-slim
+COPY --from=build /src /src
+WORKDIR /src
 EXPOSE 3000
-CMD [ "pnpm", "start" ]
+CMD [ "npm", "run", "start:prod" ]

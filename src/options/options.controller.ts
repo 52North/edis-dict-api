@@ -49,6 +49,7 @@ export class OptionsController {
   @ApiQuery({
     name: 'lang',
     required: false,
+    type: String,
     description:
       'Nur die alternativen Benennungen dieser Sprache (ohne Region) und die ohne Sprache, wie bei <code>/search</code> (z.B. <code>en</code>)',
   })

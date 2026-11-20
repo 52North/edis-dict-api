@@ -86,7 +86,7 @@ export class StationQuery {
     required: false,
     enum: ['relevance'],
     description:
-      'Reihenfolge der Treffer von <code>q</code>: <code>relevance</code> stellt die Stationen vorn an, bei denen <code>q</code> genau passt, zuerst auf Name oder Pegelnummer, dann Gewässer, dann Ort oder Kreis, dann die übrigen Felder. Es folgen Namen, die mit <code>q</code> beginnen, dann Teiltreffer in Name, Gewässer, Ort und den übrigen Feldern. Ohne <code>sort</code> oder ohne <code>q</code> bleibt die Reihenfolge von Pegelonline (z.B. <code>q=Sachsen&sort=relevance</code> mit den Pegeln in Sachsen vor denen in Niedersachsen und Sachsen-Anhalt)',
+      'Reihenfolge der Treffer von <code>q</code>: <code>relevance</code> stellt die Stationen vorn an, bei denen <code>q</code> genau passt, zuerst auf Name oder Pegelnummer, dann Gewässer, dann Ort oder Kreis, dann die übrigen Felder. Es folgen Namen, die mit <code>q</code> beginnen, dann Teiltreffer in Name, Gewässer, Ort oder Kreis und den übrigen Feldern. Ohne <code>sort</code> oder ohne <code>q</code> bleibt die Reihenfolge von Pegelonline (z.B. <code>q=Sachsen&sort=relevance</code> mit den Pegeln in Sachsen vor denen in Niedersachsen und Sachsen-Anhalt)',
   })
   sort?: 'relevance';
   @ApiProperty({

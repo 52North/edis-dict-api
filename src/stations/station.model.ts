@@ -201,7 +201,8 @@ export class PegelonlineStation {
   water_names?: Record<string, string>;
 
   @ApiProperty({
-    description: 'Stadt - angereichert in der DICT-API',
+    description:
+      'Stadt, ohne Stadt die Ortschaft, das Dorf oder die Gemeinde - angereichert in der DICT-API',
     required: false,
   })
   city?: string;
@@ -315,7 +316,6 @@ export class PegelonlineStation {
 
   @ApiProperty({
     description: 'Zugehöriger mqtt topic für alle Messungen an der Station',
-    required: false,
   })
   mqtttopic: string;
 

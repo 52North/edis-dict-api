@@ -226,6 +226,11 @@ describe('Search API (e2e)', () => {
         'name' in p ? p.name : undefined,
       ),
     ).toEqual(['parameter', 'grouped', 'lang']);
+    expect(
+      document.paths['/options']?.get?.parameters?.find(
+        (p) => 'name' in p && p.name === 'lang',
+      ),
+    ).toMatchObject({ schema: { type: 'string' } });
     expect(Object.keys(schemas.OptionGroup.properties ?? {})).toEqual([
       'value',
       'alternatives',
@@ -319,6 +324,8 @@ describe('Search API (e2e)', () => {
 
     expect(schemas.PegelonlineTimeseries.required).toContain('pegelonlinelink');
     expect(schemas.PegelonlineTimeseries.required).not.toContain('mqtttopic');
+    // unlike the timeseries topic, the station topic is always set
+    expect(schemas.PegelonlineStation.required).toContain('mqtttopic');
   });
 
   it('describes the Sensor Web link of a timeseries as optional', () => {
